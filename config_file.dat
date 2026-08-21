@@ -1,0 +1,8 @@
+#
+#$Id: config_file.dat,v 1.1 2026/08/19 04:50:35 venkatnarayan.h Exp venkatnarayan.h $
+#
+NumCacheLevelsExclMM = 2  ##Cache levels (excluding main memory)
+WritePolicy = WB  #WB = WriteBack.  WT = WriteThru
+CapacityOfL1Cache = 2
+CapacityOfL2Cache = 4
+
