@@ -127,15 +127,15 @@ template <typename T> void sciToNumber(const string &str, T &val,
 
 void PrintConfigFileDataStruct(parameters *parms)
 {
-  printf("parms->NumCacheLevelsExclMM = %lu\n", parms->NumCacheLevelsExclMM);
+  printf("parms->NumCacheLevelsExclMM = %zu\n", parms->NumCacheLevelsExclMM);
   printf("parms->WritePolicy = %s\n",
     parms->WritePolicy == Write_Policy::WRITE_BACK ? "WB" :
     parms->WritePolicy == Write_Policy::WRITE_THRU ? "WT" :
     "INVALID");
-  printf("parms->CapacityOfL1Cache = %lu\n", parms->CapacityOfL1Cache);
-  printf("parms->CapacityOfL2Cache = %lu\n", parms->CapacityOfL2Cache);
-  printf("parms->CapacityOfL3Cache = %lu\n", parms->CapacityOfL3Cache);
-  printf("parms->CapacityOfL4Cache = %lu\n", parms->CapacityOfL4Cache);
+  printf("parms->CapacityOfL1Cache = %zu\n", parms->CapacityOfL1Cache);
+  printf("parms->CapacityOfL2Cache = %zu\n", parms->CapacityOfL2Cache);
+  printf("parms->CapacityOfL3Cache = %zu\n", parms->CapacityOfL3Cache);
+  printf("parms->CapacityOfL4Cache = %zu\n", parms->CapacityOfL4Cache);
 }
 
 
@@ -194,8 +194,8 @@ void LoadAccessPatterns(string access_pat_filenm, vector<MemAccess> &m_accesses)
 
 void PrintAccessPatternFileDataStruct(vector<MemAccess> &m_accesses)
 {
-  for (auto access : m_accesses) {
-    printf("%c %lu", access.read ? 'R' : 'W', access.addr);
+  for (const auto &access : m_accesses) {
+    printf("%c %zu", access.read ? 'R' : 'W', access.addr);
     if (!access.read)
       printf(" %d", access.write_data);
     printf("\n");

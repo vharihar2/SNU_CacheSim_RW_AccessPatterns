@@ -3,5 +3,5 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="CacheSim_RW_AccessPatterns.vcxproj" />
+  <Project Path="CacheSim_RW_AccessPatterns.vcxproj" Id="53d8cb0c-7f7a-4eae-a520-41dc9c52b3a4" />
 </Solution>
