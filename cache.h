@@ -27,6 +27,7 @@ enum class Write_Policy {
 typedef struct cache_entry {
   size_t addr;
   int data;
+  bool valid;		//False means there is no data here
   bool dirty;		//Relevant for write-thru policy
   bool modified_in_curr_access;
   size_t timestamp;	//For LRU replacement policy
@@ -34,7 +35,7 @@ typedef struct cache_entry {
 
 class Cache {
 public:
-  Cache(size_t s) : size(s) {}
+  Cache(size_t s);
   inline int findIndexOfAddr(size_t addr);
   inline int findFreeSlotIndex();
   inline void insertAt(int free_slot, const t_cache_entry& cache_entry);
@@ -43,10 +44,11 @@ public:
   void write(size_t addr, int data, Write_Policy wp);
   void setLowerLevelCache(Cache* c) {/*@@*/};
   void setUpperLevelCache(Cache *c) {/*@@*/ };
+  void printContents(bool printNewline = true);
   
 private:
   vector<t_cache_entry> contents;	//Contents of the cache after the current access pattern.
-  size_t size;  //Max entries allowed in the vector above
+  //@@size_t size;  //Max entries allowed in the vector above
   Cache *upper = NULL;
   Cache *lower = NULL;
   int curr_max_timestamp = -1;

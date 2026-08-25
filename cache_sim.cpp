@@ -205,23 +205,14 @@ void PrintAccessPatternFileDataStruct(vector<MemAccess> &m_accesses)
 
 void SimulateCache(vector<MemAccess> &m_accesses, parameters *parms)
 {
-  /*@@
-  L1Cache l1;
-  L2Cache l2;
-  */
   Cache l1(2);
   Cache l2(4);
+
   l1.setLowerLevelCache(&l2);
   l2.setUpperLevelCache(&l1);
 
   for (const auto &access : m_accesses)
   {
-    t_cache_entry cache_entry;
-
-    //First handle L1 cache
-    cache_entry.addr = access.addr;
-    cache_entry.data = access.write_data;
-
     if (access.read)
     {
       //Read
@@ -232,28 +223,9 @@ void SimulateCache(vector<MemAccess> &m_accesses, parameters *parms)
       l1.write(access.addr, access.write_data, parms->WritePolicy);
     }
 
-    /*@@
-    if (l1.findAddr(access.addr) < 0)  //Addr not in cache.
-    {
-      int free_slot = l1.findFreeSlotIndex();
-      if (free_slot < 0)  //No free slot.
-      {
-        //Need to first evict (after waterfalling to L2 if WRITE_THRU).
-
-      }
-      else
-      {
-        cache_entry.dirty = (parms->WritePolicy == Write_Policy::WRITE_THRU &&
-                              access.read == false);
-        cache_entry.modified_in_curr_access = (access.read == false);
-
-        l1.insertAt(free_slot, cache_entry);
-      }
-    } else  //Addr found in cache.
-    {
-
-    }
-    */
+    l1.printContents(false);
+    printf("\t");
+    l2.printContents();
   }
 }
 
