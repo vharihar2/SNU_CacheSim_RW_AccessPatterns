@@ -207,9 +207,10 @@ void SimulateCache(vector<MemAccess> &m_accesses, parameters *parms)
 {
   Cache l1(2);
   Cache l2(4);
+  MainMemory mm;
 
-  l1.setLowerLevelCache(&l2);
-  l2.setUpperLevelCache(&l1);
+  l1.setLowerLevelCache(&l2, &mm);
+  l2.setUpperLevelCache(&l1, &mm);
 
   for (const auto &access : m_accesses)
   {

@@ -3,7 +3,7 @@
 //
 #include "cache.h"
 
-Cache::Cache(size_t s) //@@: size(s)
+Cache::Cache(size_t s)
 {
     t_cache_entry cache_entry;
 
@@ -21,10 +21,6 @@ Cache::Cache(size_t s) //@@: size(s)
 int Cache::findIndexOfAddr(size_t addr)
 {
 	size_t n = contents.size();
-/*@@    if (n > size) {
-        printf("-E-: More entries than cache size set up!\n");   //Failsafe code
-        exit(1);
-    }*/
 
     for (size_t i = 0; i < n; ++i)
         if (contents[i].addr == addr)
@@ -52,15 +48,6 @@ void Cache::insertAt(int free_slot, const t_cache_entry &cache_entry)
         printf("-E-: Free slot index cannot be negative!\n");   //Failsafe code
         exit(1);
     }
-/*@@    else if (free_slot < size) {
-        contents[free_slot] = cache_entry;
-    }
-    else
-    {
-        printf("-E-: Free slot index MUST be less than the cache size set up!\n");   //Failsafe code
-        exit(1);
-    }
-*/
     contents[free_slot] = cache_entry;
 }
 
@@ -83,26 +70,6 @@ void Cache::printContents(bool printNewline)
 size_t Cache::findIndexOfLruEntry()
 {
 	size_t n = contents.size();
-/*@@    if (n > size) {
-        printf("-E-: More entries than cache size set up!\n");   //Failsafe code
-        exit(1);
-    }
-
-    if (n == 0) return 0;
-
-    size_t lru_index = 0;
-    size_t lru_timestamp = contents[0].timestamp;
-
-    for (size_t i = 1; i < n; ++i)
-    {
-        if (contents[i].timestamp < lru_timestamp)
-        {
-            lru_index = i;
-            lru_timestamp = contents[i].timestamp;
-        }
-    }
-    */
-
     size_t lru_index = 0;
     size_t lru_timestamp = contents[0].timestamp;
 
@@ -118,6 +85,21 @@ size_t Cache::findIndexOfLruEntry()
 
     return lru_index;
 }
+
+
+void Cache::setLowerLevelCache(Cache* c, MainMemory* mm)
+{
+    lower = c;
+    this->mm = mm;
+}
+
+
+void Cache::setUpperLevelCache(Cache* c, MainMemory* mm)
+{
+    upper = c;
+    this->mm = mm;
+}
+
 
 void Cache::write(size_t addr, int data, Write_Policy wp)
 {
@@ -135,7 +117,7 @@ void Cache::write(size_t addr, int data, Write_Policy wp)
             //Need to first evict (after waterfalling to lower level cache if WRITE_BACK and if LRU entry is dirty).
             index_to_insert_at = (int)findIndexOfLruEntry();    //Find the LRU entry in this cache (to evict).
 
-            if (wp == Write_Policy::WRITE_BACK)
+            if (wp == Write_Policy::WRITE_BACK) //In write-back, we waterfall dirty data to lower level cache ONLY UPON EVICTION.
             {
                 //Waterfall to lower level cache if LRU entry is dirty.
                 if (contents[index_to_insert_at].dirty)
@@ -143,6 +125,8 @@ void Cache::write(size_t addr, int data, Write_Policy wp)
                     //Waterfall to lower level cache (if any) and reset the dirty bit.
                     if (lower)
                         lower->write(contents[index_to_insert_at].addr, contents[index_to_insert_at].data, wp);
+                    else
+                        mm->contents[addr] = data;    //Save in main memory.
 
                     contents[index_to_insert_at].dirty = false;    //Reset the dirty bit at the current level.
                 }
