@@ -217,7 +217,7 @@ void SimulateCache(vector<MemAccess> &m_accesses, parameters *parms)
     if (access.read)
     {
       //Read
-      int data = l1.read(access.addr);
+      int data = l1.read(access.addr, parms->WritePolicy);
     } else
     {
       //Write

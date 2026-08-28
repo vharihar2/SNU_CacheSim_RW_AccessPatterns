@@ -19,6 +19,9 @@ using namespace std;
 #define SNUCS_MAX_CACHE_LEVELS 3  //L1, L2, L3 (excluding main memory)
 
 class MainMemory {
+public:
+	int read(size_t addr);
+
 public:	//@@Just being lazy for now. Make it private later
 	map<size_t, int> contents;	//Map of (addr, data)
 };
@@ -46,7 +49,7 @@ public:
   int findFreeSlotIndex();
   void insertAt(int free_slot, const t_cache_entry& cache_entry);
   size_t findIndexOfLruEntry();
-  int read(size_t addr) {/*@@*/ printf("Not yet implemented!\n"); exit(1); return -99999; };
+  int read(size_t addr, Write_Policy wp);
   void write(size_t addr, int data, Write_Policy wp);
   void setLowerLevelCache(Cache *c, MainMemory *mm);
   void setUpperLevelCache(Cache *c, MainMemory *mm);
@@ -58,6 +61,8 @@ private:
   Cache *lower = NULL;
   MainMemory *mm = NULL;
   int curr_max_timestamp = -1;
+
+  int getDataAtIndex(size_t index);
 };
 
 
