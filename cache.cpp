@@ -1,6 +1,23 @@
 //
-//$Id$
-//
+//$Id: cache.cpp,v 1.12 2026/08/29 11:14:02 venkatnarayan.h Exp venkatnarayan.h $//
+/*
+* Copyright (c) 2026, Shiv Nadar University, Delhi NCR, India. All Rights
+* Reserved. Permission to use, copy, modify and distribute this software for
+* educational, research, and not-for-profit purposes, without fee and without a
+* signed license agreement, is hereby granted, provided that this paragraph and
+* the following two paragraphs appear in all copies, modifications, and
+* distributions.
+*
+* IN NO EVENT SHALL SHIV NADAR UNIVERSITY BE LIABLE TO ANY PARTY FOR DIRECT,
+* INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST
+* PROFITS, ARISING OUT OF THE USE OF THIS SOFTWARE.
+*
+* SHIV NADAR UNIVERSITY SPECIFICALLY DISCLAIMS ANY WARRANTIES, INCLUDING, BUT
+* NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+* PARTICULAR PURPOSE. THE SOFTWARE PROVIDED HEREUNDER IS PROVIDED "AS IS". SHIV
+* NADAR UNIVERSITY HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES,
+* ENHANCEMENTS, OR MODIFICATIONS.*/
+
 #include "cache.h"
 
 Cache::Cache(size_t s)
@@ -121,7 +138,9 @@ int Cache::getDataAtIndex(size_t index)
 }
 
 
-
+//
+//Handle cache misses. Here-in lies the complexity of the cache simulator (to handle eviction, etc). We need to ensure that we follow the
+//"inclusive cache" design, handle the write policies correctly, and do slightly different things based on read vs write.
 void Cache::processCacheMiss(size_t addr, Write_Policy wp, bool write, int& data)
 {
     //First ensure that it exists in lower level cache (since we are assuming an "inclusive cache").
@@ -132,7 +151,6 @@ void Cache::processCacheMiss(size_t addr, Write_Policy wp, bool write, int& data
         data_from_lower_level = mm->read(addr);
 
     //Then insert it in the current level cache (do NOT call write, else we have an infinite loop of write calling read and vice versa).
-    //We follow the philosophy that read() at any level should NOT call write(). But it is ok for write() to call read().
     int index_to_insert_at = findFreeSlotIndex();
 
     if (index_to_insert_at < 0)  //No free slot.
@@ -147,9 +165,9 @@ void Cache::processCacheMiss(size_t addr, Write_Policy wp, bool write, int& data
             {
                 //Waterfall to lower level cache (if any) and reset the dirty bit.
                 if (lower)
-                    lower->write(contents[index_to_insert_at].addr, contents[index_to_insert_at].data, wp);
+                    lower->write(contents[index_to_insert_at].addr, contents[index_to_insert_at].data, wp); //Waterfall to lower level cache.
                 else
-                    mm->contents[addr] = contents[index_to_insert_at].data;     //@@data;    //Save in main memory.
+                    mm->contents[addr] = contents[index_to_insert_at].data; //Waterfall to main memory.
 
                 if (!write)
                     contents[index_to_insert_at].dirty = false;    //Having waterfalled, reset the dirty bit at the current level if doing a 'read'.
@@ -178,72 +196,16 @@ void Cache::processCacheMiss(size_t addr, Write_Policy wp, bool write, int& data
 }
 
 
-
 //
-//Read data from cache (in the process, load up the data into curr and lower level caches if not already present)
+//Read data from cache.
 int Cache::read(size_t addr, Write_Policy wp)
 {
     int index = findIndexOfAddr(addr);
 
-    if (index < 0)  //Addr not in cache (cache miss), get it from lower level cache (if any) or main memory.
+    if (index < 0)  //Cache miss.
     {
         int data;
-        processCacheMiss(addr, wp, false, data);
-        return data;
-
-        /*@@
-        //Get it from lower level cache (if any) or main memory.
-        //First ensure that it exists in lower level cache (since we are assuming an "inclusive cache").
-        int data;
-        if (lower)
-            data = lower->read(addr, wp);
-        else
-            data = mm->read(addr);
-
-        //Then insert it in the current level cache (do NOT call write, else we have an infinite loop of write calling read and vice versa).
-        //We follow the philosophy that read() at any level should NOT call write(). But it is ok for write() to call read().
-        int index_to_insert_at = findFreeSlotIndex();
-
-        if (index_to_insert_at < 0)  //No free slot.
-        {
-            //Need to first evict (after waterfalling to lower level cache if WRITE_BACK and if LRU entry is dirty).
-            index_to_insert_at = (int)findIndexOfLruEntry();    //Find the LRU entry in this cache (to evict).
-
-            if (wp == Write_Policy::WRITE_BACK) //In write-back, we waterfall dirty data to lower level cache ONLY UPON EVICTION.
-            {
-                //Waterfall to lower level cache if LRU entry is dirty.
-                if (contents[index_to_insert_at].dirty)
-                {
-                    //Waterfall to lower level cache (if any) and reset the dirty bit.
-                    if (lower)
-                        lower->write(contents[index_to_insert_at].addr, contents[index_to_insert_at].data, wp);
-                    else
-                        mm->contents[addr] = data;    //Save in main memory.
-
-                    contents[index_to_insert_at].dirty = false;    //Reset the dirty bit at the current level.
-                }
-            }
-        }
-        else
-        {
-            //Cache miss. Have got the data from lower level cache. Need to insert in curr level where we DO have a free slot.
-            //cache_entry.dirty = false;  //Data cannot be dirty in a read.
-        }
-
-        //@@
-
-        //Now write it in the curr cache level
-        t_cache_entry cache_entry;
-        cache_entry.addr = addr;
-        cache_entry.data = data;
-        cache_entry.valid = true;
-        cache_entry.dirty = false;  //Data cannot be dirty in a read.
-        cache_entry.modified_in_curr_access = false;    //Data is not modified in a read.
-        cache_entry.timestamp = ++curr_max_timestamp;
-
-        insertAt(index_to_insert_at, cache_entry);
-        */
-
+        processCacheMiss(addr, wp, false, data); //Get it from lower level cache (if any) or main memory, and write it in the curr cache level.
         return data;
     }
     else
@@ -252,7 +214,7 @@ int Cache::read(size_t addr, Write_Policy wp)
 
 
 //
-//Write data into cache (before that, load up the data into curr and lower level caches if not already present)
+//Write data into cache.
 void Cache::write(size_t addr, int data, Write_Policy wp)
 {
     t_cache_entry cache_entry;
@@ -262,66 +224,10 @@ void Cache::write(size_t addr, int data, Write_Policy wp)
 
     int index = findIndexOfAddr(addr);
 
-    if (index < 0)  //Addr not in cache (cache miss), get it from lower level cache (if any) or main memory.
+    if (index < 0)  //Cache miss.
+		processCacheMiss(addr, wp, true, data); //Get it from lower level cache (if any) or main memory, and write it in the curr cache level.
+    else  //Cache hit. Write it in the curr cache level.
     {
-        processCacheMiss(addr, wp, true, data);
-
-        /*
-		//@@@@
-        //Get it from lower level cache (if any) or main memory.
-        //First ensure that it exists in lower level cache (since we are assuming an "inclusive cache").
-        int dummy;    //We use "dummy" as var name, since we dont care about it, as we'll overwrite it with the new data anyway.
-		if (lower)
-			dummy = lower->read(addr, wp);
-        else
-            dummy = mm->read(addr);
-        //@@
-
-        @@@@
-        //Get it into the current cache by doing a read, which'll recursively read from lower level caches if needed)
-        int dummy = read(addr);
-        @@
-
-        //Then insert at curr level cache.
-        int index_to_insert_at = findFreeSlotIndex();
-
-        if (index_to_insert_at < 0)  //No free slot.
-        {
-            //Need to first evict (after waterfalling to lower level cache if WRITE_BACK and if LRU entry is dirty).
-            index_to_insert_at = (int)findIndexOfLruEntry();    //Find the LRU entry in this cache (to evict).
-
-            if (wp == Write_Policy::WRITE_BACK) //In write-back, we waterfall dirty data to lower level cache ONLY UPON EVICTION.
-            {
-                //Waterfall to lower level cache if LRU entry is dirty.
-                if (contents[index_to_insert_at].dirty)
-                {
-                    //Waterfall to lower level cache (if any) and reset the dirty bit.
-                    if (lower)
-                        lower->write(contents[index_to_insert_at].addr, contents[index_to_insert_at].data, wp);
-                    else
-                        mm->contents[addr] = data;    //Save in main memory.
-
-//@@                    contents[index_to_insert_at].dirty = false;    //Reset the dirty bit at the current level.
-                }
-            }
-        }
-        else {
-            //There is a free slot in curr level cache, where we'll be inserting soon. Mark it as dirty.
-//@@            cache_entry.dirty = (wp == Write_Policy::WRITE_BACK);
-        }
-        
-        cache_entry.dirty = (wp == Write_Policy::WRITE_BACK);//@@
-
-        //Now write it in the curr cache level
-        cache_entry.modified_in_curr_access = true;
-        cache_entry.timestamp = ++curr_max_timestamp;
-
-        insertAt(index_to_insert_at, cache_entry);
-        */
-    }
-    else  //Addr found in cache.
-    {
-        //Write it in the curr cache level.
         cache_entry.dirty = (wp == Write_Policy::WRITE_BACK);
         cache_entry.modified_in_curr_access = true;
         cache_entry.timestamp = ++curr_max_timestamp;
@@ -329,5 +235,4 @@ void Cache::write(size_t addr, int data, Write_Policy wp)
         insertAt(index, cache_entry);
     }
 }
-
 
