@@ -63,6 +63,7 @@ private:
   int curr_max_timestamp = -1;
 
   int getDataAtIndex(size_t index);
+  void processCacheMiss(size_t addr, Write_Policy wp, bool write, int& data);
 };
 
 
