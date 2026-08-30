@@ -228,8 +228,9 @@ void SimulateCache(vector<MemAccess> &m_accesses, parameters *parms)
   vector<int> level_indices_modified_in_curr_access = {-1, -1}; //@@Note: This could misbehave sometimes, eg. when
   //multiple addresses in a cache level are written to in the same access (eg. L1 miss and L2 miss, fetch from MM into
   //L2 at index A2, then attempt to load it into L1 but no free slot in L1, so need to evict say index A1 in L1 by
-  //waterfalling it to L2 (if WRITE_BACK policy), but no free slot in L2 either, so need to evict say index A3 in L2 by
-  //waterfalling it to MM. Thus, in L2, two indices would have been "modified in the current access", viz. A2 and A3.
+  //waterfalling it to L2 (if WRITE_BACK policy), but no free slot in L2 either, so need to evict say index A3 in L2 (by
+  //waterfalling it to MM) and then writing at index A3 in L2. Thus, in L2, two indices would have been "modified in
+  //the current access", viz. A2 and A3.
 
   l1.setLowerLevelCache(&l2, &mm);
   l2.setUpperLevelCache(&l1, &mm);

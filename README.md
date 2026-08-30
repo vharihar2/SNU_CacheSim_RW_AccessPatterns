@@ -9,13 +9,18 @@ This is a simple Cache Simulator developed by Dr Venkatnarayan Hariharan of the 
 
 
 *Caveats*:
-- In the output listing, amongst other things, we display a flag indicating whether a cache entry "was modified in the current access". This feature could misbehave sometimes, eg. when multiple addresses in a cache level are written to in the same access (eg. L1 miss and L2 miss, fetch from MM into L2 at index A2, then attempt to load it into L1 but no free slot in L1, so need to evict say index A1 in L1 by waterfalling it to L2 (if WRITE_BACK policy), but no free slot in L2 either, so need to evict say index A3 in L2 by waterfalling it to MM. Thus, in L2, two indices would have been "modified in the current access", viz. A2 and A3.
+- In the output listing, amongst other things, we display a flag indicating whether a cache entry "was modified in the current access". This feature could misbehave sometimes, eg. when multiple addresses in a cache level are written to in the same access (eg. L1 miss and L2 miss, fetch from MM into L2 at index A2, then attempt to load it into L1 but no free slot in L1, so need to evict say index A1 in L1 by waterfalling it to L2 (if WRITE_BACK policy), but no free slot in L2 either, so need to evict say index A3 in L2 (by waterfalling it to main memory) and then writing at index A3 in L2. Thus, in L2, two indices would have been "modified in the current access", viz. A2 and A3.
 
 <br>
 
 ***Future TODOs (@@TODO)***:
 - P1 (top priority):
-    - Fix bugs related to dirty bit.
+    - Validate the o/p related to dirty bit, and fix any bugs related to it
+    - The `map` member variable in `MainMemory` class is presently `public`, as a quickfix. Need to make it `private` to be cleaner.
+    - Uninitialized memory (ie. junk) loaded from MM is presently deemed as -99999. A better implementation is to have a `bool junk_data` flag.
+    - Test out write-through cases too (there is an exercise problem regarding that too).
 - P2:
+    - Add support for FIFO replacement policy (there is an exercise problem regarding that too).
+- P3:
     - Make the cache instantiation dynamic in cache_sim.cpp in line with the intent of the config file.
     - Fix the caveat related to "multiple words in a cache being modified in an access".
