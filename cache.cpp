@@ -20,7 +20,7 @@
 
 #include "cache.h"
 
-Cache::Cache(size_t s)
+Cache::Cache(size_t s, size_t levelMinus1)
 {
     t_cache_entry cache_entry;
 
@@ -28,10 +28,11 @@ Cache::Cache(size_t s)
     cache_entry.data = 0;
     cache_entry.valid = false;
     cache_entry.dirty = false;
-    cache_entry.modified_in_curr_access = false;
     cache_entry.timestamp = 0;
 
     contents.resize(s, cache_entry);
+
+    this->levelMinus1 = levelMinus1;
 }
 
 
@@ -69,14 +70,15 @@ void Cache::insertAt(int free_slot, const t_cache_entry &cache_entry)
 }
 
 
-void Cache::printContents(bool printNewline)
+void Cache::printContents(int index_modified_in_curr_access, bool printNewline)
 {
-    for (const auto& cache_entry : contents)
-    {
+    size_t n = contents.size();
+    for (size_t i = 0; i< n ; i++) {
+        t_cache_entry& cache_entry = contents[i];
         printf("%zu,%d (V:%c, D:%c, MCA:%c, TS:%zu)\t",
             cache_entry.addr, cache_entry.data,
             cache_entry.valid ? 'T' : 'F', cache_entry.dirty ? 'T' : 'F',
-            cache_entry.modified_in_curr_access?'T':'F', cache_entry.timestamp);
+            i == index_modified_in_curr_access ? 'T' : 'F', cache_entry.timestamp);
     }
 
     if (printNewline)
@@ -141,19 +143,20 @@ int Cache::getDataAtIndex(size_t index)
 //
 //Handle cache misses. Here-in lies the complexity of the cache simulator (to handle eviction, etc). We need to ensure that we follow the
 //"inclusive cache" design, handle the write policies correctly, and do slightly different things based on read vs write.
-void Cache::processCacheMiss(size_t addr, Write_Policy wp, bool write, int& data)
+void Cache::processCacheMiss(size_t addr, Write_Policy wp, bool write, int& data,
+                             vector<int>& level_indices_modified_in_curr_access)
 {
     //First ensure that it exists in lower level cache (since we are assuming an "inclusive cache").
     int data_from_lower_level;
     if (lower)
-        data_from_lower_level = lower->read(addr, wp);
+        data_from_lower_level = lower->read(addr, wp, level_indices_modified_in_curr_access);
     else
         data_from_lower_level = mm->read(addr);
 
     //Then insert it in the current level cache (do NOT call write, else we have an infinite loop of write calling read and vice versa).
     int index_to_insert_at = findFreeSlotIndex();
 
-    if (index_to_insert_at < 0)  //No free slot.
+    if (index_to_insert_at < 0)  //No free slot, need to evict and replace.
     {
         //Need to first evict (after waterfalling to lower level cache if WRITE_BACK and if LRU entry is dirty).
         index_to_insert_at = (int)findIndexOfLruEntry();    //Find the LRU entry in this cache (to evict).
@@ -165,7 +168,8 @@ void Cache::processCacheMiss(size_t addr, Write_Policy wp, bool write, int& data
             {
                 //Waterfall to lower level cache (if any) and reset the dirty bit.
                 if (lower)
-                    lower->write(contents[index_to_insert_at].addr, contents[index_to_insert_at].data, wp); //Waterfall to lower level cache.
+                    lower->write(contents[index_to_insert_at].addr, contents[index_to_insert_at].data, wp,
+                                level_indices_modified_in_curr_access); //Waterfall to lower level cache.
                 else
                     mm->contents[addr] = contents[index_to_insert_at].data; //Waterfall to main memory.
 
@@ -189,23 +193,23 @@ void Cache::processCacheMiss(size_t addr, Write_Policy wp, bool write, int& data
     cache_entry.valid = true;
 
     cache_entry.dirty = (write && (wp == Write_Policy::WRITE_BACK));
-    cache_entry.modified_in_curr_access = write;
     cache_entry.timestamp = ++curr_max_timestamp;
 
     insertAt(index_to_insert_at, cache_entry);
+    level_indices_modified_in_curr_access[levelMinus1] = index_to_insert_at;
 }
 
 
 //
 //Read data from cache.
-int Cache::read(size_t addr, Write_Policy wp)
+int Cache::read(size_t addr, Write_Policy wp, vector<int>& level_indices_modified_in_curr_access)
 {
     int index = findIndexOfAddr(addr);
 
     if (index < 0)  //Cache miss.
     {
         int data;
-        processCacheMiss(addr, wp, false, data); //Get it from lower level cache (if any) or main memory, and write it in the curr cache level.
+        processCacheMiss(addr, wp, false, data, level_indices_modified_in_curr_access); //Get it from lower level cache (if any) or main memory, and write it in the curr cache level.
         return data;
     }
     else
@@ -215,7 +219,7 @@ int Cache::read(size_t addr, Write_Policy wp)
 
 //
 //Write data into cache.
-void Cache::write(size_t addr, int data, Write_Policy wp)
+void Cache::write(size_t addr, int data, Write_Policy wp, vector<int>& level_indices_modified_in_curr_access)
 {
     t_cache_entry cache_entry;
     cache_entry.addr = addr;
@@ -225,14 +229,14 @@ void Cache::write(size_t addr, int data, Write_Policy wp)
     int index = findIndexOfAddr(addr);
 
     if (index < 0)  //Cache miss.
-		processCacheMiss(addr, wp, true, data); //Get it from lower level cache (if any) or main memory, and write it in the curr cache level.
+		processCacheMiss(addr, wp, true, data, level_indices_modified_in_curr_access); //Get it from lower level cache (if any) or main memory, and write it in the curr cache level.
     else  //Cache hit. Write it in the curr cache level.
     {
         cache_entry.dirty = (wp == Write_Policy::WRITE_BACK);
-        cache_entry.modified_in_curr_access = true;
         cache_entry.timestamp = ++curr_max_timestamp;
 
         insertAt(index, cache_entry);
+		level_indices_modified_in_curr_access[levelMinus1] = index;
     }
 }
 

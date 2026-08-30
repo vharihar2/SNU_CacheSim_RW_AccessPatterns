@@ -222,9 +222,14 @@ void PrintAccessPatternFileDataStruct(vector<MemAccess> &m_accesses)
 
 void SimulateCache(vector<MemAccess> &m_accesses, parameters *parms)
 {
-  Cache l1(2);
-  Cache l2(4);
+  Cache l1(2, 0);
+  Cache l2(4, 1);
   MainMemory mm;
+  vector<int> level_indices_modified_in_curr_access = {-1, -1}; //@@Note: This could misbehave sometimes, eg. when
+  //multiple addresses in a cache level are written to in the same access (eg. L1 miss and L2 miss, fetch from MM into
+  //L2 at index A2, then attempt to load it into L1 but no free slot in L1, so need to evict say index A1 in L1 by
+  //waterfalling it to L2 (if WRITE_BACK policy), but no free slot in L2 either, so need to evict say index A3 in L2 by
+  //waterfalling it to MM. Thus, in L2, two indices would have been "modified in the current access", viz. A2 and A3.
 
   l1.setLowerLevelCache(&l2, &mm);
   l2.setUpperLevelCache(&l1, &mm);
@@ -234,16 +239,16 @@ void SimulateCache(vector<MemAccess> &m_accesses, parameters *parms)
     if (access.read)
     {
       //Read
-      int data = l1.read(access.addr, parms->WritePolicy);
+      int data = l1.read(access.addr, parms->WritePolicy, level_indices_modified_in_curr_access);
     } else
     {
       //Write
-      l1.write(access.addr, access.write_data, parms->WritePolicy);
+      l1.write(access.addr, access.write_data, parms->WritePolicy, level_indices_modified_in_curr_access);
     }
 
-    l1.printContents(false);
+    l1.printContents(level_indices_modified_in_curr_access[0], false);
     printf("\t");
-    l2.printContents();
+    l2.printContents(level_indices_modified_in_curr_access[1]);
   }
 }
 

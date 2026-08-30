@@ -55,32 +55,33 @@ typedef struct cache_entry {
 	int data;
 	bool valid;		//False means there is no data here
 	bool dirty;		//Relevant for write-thru policy
-	bool modified_in_curr_access;
 	size_t timestamp;	//For LRU replacement policy
 } t_cache_entry;
 
 class Cache {
 public:
-  Cache(size_t s);
+  Cache(size_t s, size_t levelMinus1);
   int findIndexOfAddr(size_t addr);
   int findFreeSlotIndex();
   void insertAt(int free_slot, const t_cache_entry& cache_entry);
   size_t findIndexOfLruEntry();
-  int read(size_t addr, Write_Policy wp);
-  void write(size_t addr, int data, Write_Policy wp);
+  int read(size_t addr, Write_Policy wp, vector<int>& level_indices_modified_in_curr_access);
+  void write(size_t addr, int data, Write_Policy wp, vector<int>& level_indices_modified_in_curr_access);
   void setLowerLevelCache(Cache *c, MainMemory *mm);
   void setUpperLevelCache(Cache *c, MainMemory *mm);
-  void printContents(bool printNewline = true);
+  void printContents(int index_modified_in_curr_access, bool printNewline = true);
   
 private:
   vector<t_cache_entry> contents;	//Contents of the cache after the current access pattern.
+  size_t levelMinus1;	//Eg.: Hold 0 for L1 cache, 1 for L2 cache, etc.
   Cache *upper = NULL;
   Cache *lower = NULL;
   MainMemory *mm = NULL;
   int curr_max_timestamp = -1;
 
   int getDataAtIndex(size_t index);
-  void processCacheMiss(size_t addr, Write_Policy wp, bool write, int& data);
+  void processCacheMiss(size_t addr, Write_Policy wp, bool write, int& data,
+						vector<int>& level_indices_modified_in_curr_access);
 };
 
 
