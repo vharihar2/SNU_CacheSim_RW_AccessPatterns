@@ -23,3 +23,5 @@ This is a simple Cache Simulator developed by Dr Venkatnarayan Hariharan of the 
 - P3:
     - Make the cache instantiation dynamic in `cache_sim.cpp` in line with the intent of the config file, instead of hardcoding it to 2 levels.
     - Fix the caveat related to "multiple words in a cache being modified in an access".
+- P4:
+    - Add performance modeling capability.
