@@ -25,6 +25,7 @@
 #include "vhutil_config_unique_keys.h"
 
 using namespace std;
+using namespace snucs;
 
 #define SNUCS_MAX_CACHE_LEVELS 3  //L1, L2, L3 (excluding main memory)
 

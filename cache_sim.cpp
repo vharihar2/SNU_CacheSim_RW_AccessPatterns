@@ -239,13 +239,16 @@ namespace snucs {
 
 	void SimulateCache(vector<MemAccess>& m_accesses, parameters* parms)
 	{
-		Cache l1(2, 0);
-		Cache l2(4, 1);
+		Cache l1(2);
+		Cache l2(4);
 		MainMemory mm;
 
 		l1.setLowerLevelCache(&l2, &mm);
 		l2.setUpperLevelCache(&l1, &mm);
 
+		l1.setAsHighestLevelCache();
+
+		size_t access_num = 0;
 		for (const auto& access : m_accesses)
 		{
 			vector<int> level_indices_modified_in_curr_access = { -1, -1 }; //@@Note: This could misbehave sometimes, eg. when
@@ -266,6 +269,7 @@ namespace snucs {
 				l1.write(access.addr, access.write_data, parms->WritePolicy, parms->ReplacementPolicy, level_indices_modified_in_curr_access);
 			}
 
+			printf("%d.\t", ++access_num);
 			l1.printContents(level_indices_modified_in_curr_access[0], false);
 			printf("\t");
 			l2.printContents(level_indices_modified_in_curr_access[1]);

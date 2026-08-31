@@ -20,7 +20,11 @@
 
 #include "cache.h"
 
-Cache::Cache(size_t s, size_t levelMinus1)
+using namespace snucs;
+
+Cache* Cache::highest_level_cache = nullptr;
+
+Cache::Cache(size_t s)
 {
 	t_cache_entry cache_entry;
 
@@ -31,8 +35,6 @@ Cache::Cache(size_t s, size_t levelMinus1)
 	cache_entry.timestamp = 0;
 
 	contents.resize(s, cache_entry);
-
-	this->levelMinus1 = levelMinus1;
 }
 
 
@@ -113,7 +115,7 @@ size_t Cache::findIndexOfFifoEntry()
 }
 
 
-size_t Cache::findIndexOfLruEntry()	//@@WIP
+size_t Cache::findIndexOfLruEntry()
 {
 	size_t n = contents.size();
 	size_t least_index = 0;
@@ -150,6 +152,15 @@ void Cache::setUpperLevelCache(Cache* c, MainMemory* mm)
 {
 	upper = c;
 	this->mm = mm;
+}
+
+
+void Cache::setAsHighestLevelCache()
+{
+	Cache::highest_level_cache = this;
+	Cache* c = this;
+	for (size_t i = 0; c; c = c->lower)
+		c->levelMinus1 = i++;
 }
 
 
