@@ -32,5 +32,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />
+    <None Include="test\tcs01_FIFO\access_pattern.dat" />
+    <None Include="test\tcs01_FIFO\config_file.dat" />
+    <None Include="test\tcs01_FIFO\run.sh" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="test\tcs01_FIFO\golden_output.txt" />
   </ItemGroup>
 </Project>

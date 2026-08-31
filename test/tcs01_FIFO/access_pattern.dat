@@ -1,0 +1,19 @@
+#
+#$Id: access_pattern.dat,v 1.2 2026/08/31 11:35:50 venkatnarayan.h Exp venkatnarayan.h $
+#
+#Format:
+#W(rite)/R(read) <AddressInDecimal> [<DataInDecimalIfWrite>]
+
+W 20 200
+W 21 300
+R 20
+R 20
+W 22 400
+W 23 500
+W 20 201
+W 21 301
+R 22
+R 23
+W 22 401
+W 23 501
+
