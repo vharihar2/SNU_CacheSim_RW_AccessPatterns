@@ -50,12 +50,19 @@ enum class Write_Policy {
 	INVALID
 };
 
+enum class Replacement_Policy {
+	LRU,
+	FIFO,
+	INVALID
+};
+
 typedef struct cache_entry {
 	size_t addr;
 	int data;
-	bool valid;		//False means there is no data here
-	bool dirty;		//Relevant for write-thru policy
-	size_t timestamp;	//For LRU replacement policy
+	bool valid;			//False means there is no data here.
+	bool dirty;			//Relevant for write-thru policy.
+	size_t timestamp;				//For FIFO replacement policy.
+	size_t last_access_time;	//For LRU replacement policy.
 } t_cache_entry;
 
 class Cache {
@@ -64,9 +71,10 @@ public:
 	int findIndexOfAddr(size_t addr);
 	int findFreeSlotIndex();
 	void insertAt(int free_slot, const t_cache_entry& cache_entry);
+	size_t findIndexOfFifoEntry();
 	size_t findIndexOfLruEntry();
-	int read(size_t addr, Write_Policy wp, vector<int>& level_indices_modified_in_curr_access);
-	void write(size_t addr, int data, Write_Policy wp, vector<int>& level_indices_modified_in_curr_access);
+	int read(size_t addr, Write_Policy wp, Replacement_Policy rp, vector<int>& level_indices_modified_in_curr_access);
+	void write(size_t addr, int data, Write_Policy wp, Replacement_Policy rp, vector<int>& level_indices_modified_in_curr_access);
 	void setLowerLevelCache(Cache* c, MainMemory* mm);
 	void setUpperLevelCache(Cache* c, MainMemory* mm);
 	void printContents(int index_modified_in_curr_access, bool printNewline = true);
@@ -80,8 +88,9 @@ private:
 	int curr_max_timestamp = -1;
 
 	int getDataAtIndex(size_t index);
-	void processCacheMiss(size_t addr, Write_Policy wp, bool write, int& data,
+	void processCacheMiss(size_t addr, Write_Policy wp, Replacement_Policy rp, bool write, int& data,
 		vector<int>& level_indices_modified_in_curr_access);
+	size_t findIndexOfReplCandidate(Replacement_Policy rp);
 };
 
 

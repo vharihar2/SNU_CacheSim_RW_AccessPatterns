@@ -32,6 +32,7 @@ typedef struct t_parameters {
 	//Input parameters:
 	size_t NumCacheLevelsExclMM = 0;
 	Write_Policy WritePolicy = Write_Policy::INVALID;
+	Replacement_Policy ReplacementPolicy = Replacement_Policy::INVALID;
 	size_t CapacityOfL1Cache = 0;
 	size_t CapacityOfL2Cache = 0;
 	size_t CapacityOfL3Cache = 0;

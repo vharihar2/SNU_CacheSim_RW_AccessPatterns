@@ -54,6 +54,10 @@ namespace snucs {
 					if (kv.second == "WB") parms->WritePolicy = Write_Policy::WRITE_BACK;
 					if (kv.second == "WT") parms->WritePolicy = Write_Policy::WRITE_THRU;
 				}
+				else if (kv.first == "ReplacementPolicy") {
+					if (kv.second == "LRU") parms->ReplacementPolicy = Replacement_Policy::LRU;
+					if (kv.second == "FIFO") parms->ReplacementPolicy = Replacement_Policy::FIFO;
+				}
 				else {
 					std::cerr << "-E-: " << "Unrecognized key '" << kv.first << "'" << std::endl;
 					exit(1);
@@ -67,14 +71,19 @@ namespace snucs {
 
 		//Check that all necessary members are set
 		if (parms->WritePolicy == Write_Policy::INVALID) {
-			printf("-E-: WritePolicy as not been specified in the config file\n");
+			printf("-E-: WritePolicy has not been specified in the config file\n");
+			exit(1);
+		}
+
+		if (parms->ReplacementPolicy == Replacement_Policy::INVALID) {
+			printf("-E-: ReplacementPolicy has not been specified in the config file\n");
 			exit(1);
 		}
 
 		switch (parms->NumCacheLevelsExclMM)
 		{
 		case 0:
-			printf("-E-: NumCacheLevelsExclMM as not been specified in the config file\n");
+			printf("-E-: NumCacheLevelsExclMM has not been specified in the config file\n");
 			exit(1);
 
 		case 1:
@@ -152,6 +161,10 @@ namespace snucs {
 		printf("parms->WritePolicy = %s\n",
 			parms->WritePolicy == Write_Policy::WRITE_BACK ? "WB" :
 			parms->WritePolicy == Write_Policy::WRITE_THRU ? "WT" :
+			"INVALID");
+		printf("parms->ReplacementPolicy = %s\n",
+			parms->ReplacementPolicy == Replacement_Policy::LRU ? "LRU" :
+			parms->ReplacementPolicy == Replacement_Policy::FIFO ? "FIFO" :
 			"INVALID");
 		printf("parms->CapacityOfL1Cache = %zu\n", parms->CapacityOfL1Cache);
 		printf("parms->CapacityOfL2Cache = %zu\n", parms->CapacityOfL2Cache);
@@ -245,12 +258,12 @@ namespace snucs {
 			if (access.read)
 			{
 				//Read
-				int data = l1.read(access.addr, parms->WritePolicy, level_indices_modified_in_curr_access);
+				int data = l1.read(access.addr, parms->WritePolicy, parms->ReplacementPolicy, level_indices_modified_in_curr_access);
 			}
 			else
 			{
 				//Write
-				l1.write(access.addr, access.write_data, parms->WritePolicy, level_indices_modified_in_curr_access);
+				l1.write(access.addr, access.write_data, parms->WritePolicy, parms->ReplacementPolicy, level_indices_modified_in_curr_access);
 			}
 
 			l1.printContents(level_indices_modified_in_curr_access[0], false);

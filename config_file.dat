@@ -5,4 +5,4 @@ NumCacheLevelsExclMM = 2  ##Cache levels (excluding main memory)
 WritePolicy = WB  #WB = WriteBack.  WT = WriteThru
 CapacityOfL1Cache = 2
 CapacityOfL2Cache = 4
-
+ReplacementPolicy = FIFO	#Can be FIFO/LRU

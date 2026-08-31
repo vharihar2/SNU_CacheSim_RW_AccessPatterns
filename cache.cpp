@@ -75,10 +75,11 @@ void Cache::printContents(int index_modified_in_curr_access, bool printNewline)
 	size_t n = contents.size();
 	for (size_t i = 0; i < n; i++) {
 		t_cache_entry& cache_entry = contents[i];
-		printf("%zu,%d (V:%c, D:%c, MCA:%c, TS:%zu)\t",
+		printf("%zu,%d (V:%c, D:%c, MCA:%c, TS:%zu, LAT:%zu)\t",
 			cache_entry.addr, cache_entry.data,
 			cache_entry.valid ? 'T' : 'F', cache_entry.dirty ? 'T' : 'F',
-			i == index_modified_in_curr_access ? 'T' : 'F', cache_entry.timestamp);
+			i == index_modified_in_curr_access ? 'T' : 'F',
+			cache_entry.timestamp, cache_entry.last_access_time);
 	}
 
 	if (printNewline)
@@ -86,23 +87,55 @@ void Cache::printContents(int index_modified_in_curr_access, bool printNewline)
 }
 
 
-size_t Cache::findIndexOfLruEntry()
+size_t Cache::findIndexOfFifoEntry()
 {
 	size_t n = contents.size();
-	size_t lru_index = 0;
-	size_t lru_timestamp = contents[0].timestamp;
+	size_t least_index = 0;
+	size_t least_timestamp = contents[0].timestamp;
 
+	bool firsttime = true;
 	//Limit focus only to the "valid" entries. If no valid entries, then deem lru_index as 0
-	for (size_t i = 0; i < n; i++)
-	{
-		if (contents[i].valid && contents[i].timestamp < lru_timestamp)
-		{
-			lru_index = i;
-			lru_timestamp = contents[i].timestamp;
+	for (size_t i = 0; i < n; i++) {
+		if (contents[i].valid) {
+			if (firsttime) {
+				least_index = i;
+				least_timestamp = contents[i].timestamp;
+				firsttime = false;
+			}
+			else if (contents[i].timestamp < least_timestamp) {
+				least_index = i;
+				least_timestamp = contents[i].timestamp;
+			}
 		}
 	}
 
-	return lru_index;
+	return least_index;
+}
+
+
+size_t Cache::findIndexOfLruEntry()	//@@WIP
+{
+	size_t n = contents.size();
+	size_t least_index = 0;
+	size_t least_last_access_time = contents[0].last_access_time;
+
+	bool firsttime = true;
+	//Limit focus only to the "valid" entries. If no valid entries, then deem lru_index as 0
+	for (size_t i = 0; i < n; i++) {
+		if (contents[i].valid) {
+			if (firsttime) {
+				least_index = i;
+				least_last_access_time = contents[i].last_access_time;
+				firsttime = false;
+			}
+			else if (contents[i].last_access_time < least_last_access_time) {
+				least_index = i;
+				least_last_access_time = contents[i].last_access_time;
+			}
+		}
+	}
+
+	return least_index;
 }
 
 
@@ -140,16 +173,28 @@ int Cache::getDataAtIndex(size_t index)
 }
 
 
+//Find the entry in this cache to evict.
+size_t Cache::findIndexOfReplCandidate(Replacement_Policy rp)
+{
+	if (rp == Replacement_Policy::FIFO)
+		return findIndexOfFifoEntry();
+	else if (rp == Replacement_Policy::LRU)
+		return findIndexOfLruEntry();
+	else
+		throw "-E-: Invalid replacement policy!";
+}
+
+
 //
 //Handle cache misses. Here-in lies the complexity of the cache simulator (to handle eviction, etc). We need to ensure that we follow the
 //"inclusive cache" design, handle the write policies correctly, and do slightly different things based on read vs write.
-void Cache::processCacheMiss(size_t addr, Write_Policy wp, bool write, int& data,
+void Cache::processCacheMiss(size_t addr, Write_Policy wp, Replacement_Policy rp, bool write, int& data,
 	vector<int>& level_indices_modified_in_curr_access)
 {
 	//First ensure that it exists in lower level cache (since we are assuming an "inclusive cache").
 	int data_from_lower_level;
 	if (lower)
-		data_from_lower_level = lower->read(addr, wp, level_indices_modified_in_curr_access);
+		data_from_lower_level = lower->read(addr, wp, rp, level_indices_modified_in_curr_access);
 	else
 		data_from_lower_level = mm->read(addr);
 
@@ -158,17 +203,17 @@ void Cache::processCacheMiss(size_t addr, Write_Policy wp, bool write, int& data
 
 	if (index_to_insert_at < 0)  //No free slot, need to evict and replace.
 	{
-		//Need to first evict (after waterfalling to lower level cache if WRITE_BACK and if LRU entry is dirty).
-		index_to_insert_at = (int)findIndexOfLruEntry();    //Find the LRU entry in this cache (to evict).
+		//Need to first evict (after waterfalling to lower level cache if WRITE_BACK and if the entry is dirty).
+		index_to_insert_at = (int)findIndexOfReplCandidate(rp);	//Find the entry in this cache to evict.
 
 		if (wp == Write_Policy::WRITE_BACK) //In write-back, we waterfall dirty data to lower level cache ONLY UPON EVICTION.
 		{
-			//Waterfall to lower level cache if LRU entry is dirty.
+			//Waterfall to lower level cache if FIFO entry is dirty.
 			if (contents[index_to_insert_at].dirty)
 			{
 				//Waterfall to lower level cache (if any) and reset the dirty bit.
 				if (lower)
-					lower->write(contents[index_to_insert_at].addr, contents[index_to_insert_at].data, wp,
+					lower->write(contents[index_to_insert_at].addr, contents[index_to_insert_at].data, wp, rp,
 						level_indices_modified_in_curr_access); //Waterfall to lower level cache.
 				else
 					mm->contents[addr] = contents[index_to_insert_at].data; //Waterfall to main memory.
@@ -194,6 +239,7 @@ void Cache::processCacheMiss(size_t addr, Write_Policy wp, bool write, int& data
 
 	cache_entry.dirty = (write && (wp == Write_Policy::WRITE_BACK));
 	cache_entry.timestamp = ++curr_max_timestamp;
+	cache_entry.last_access_time = cache_entry.timestamp;
 
 	insertAt(index_to_insert_at, cache_entry);
 	level_indices_modified_in_curr_access[levelMinus1] = index_to_insert_at;
@@ -202,24 +248,27 @@ void Cache::processCacheMiss(size_t addr, Write_Policy wp, bool write, int& data
 
 //
 //Read data from cache.
-int Cache::read(size_t addr, Write_Policy wp, vector<int>& level_indices_modified_in_curr_access)
+int Cache::read(size_t addr, Write_Policy wp, Replacement_Policy rp, vector<int>& level_indices_modified_in_curr_access)
 {
 	int index = findIndexOfAddr(addr);
 
 	if (index < 0)  //Cache miss.
 	{
 		int data;
-		processCacheMiss(addr, wp, false, data, level_indices_modified_in_curr_access); //Get it from lower level cache (if any) or main memory, and write it in the curr cache level.
+		processCacheMiss(addr, wp, rp, false, data, level_indices_modified_in_curr_access); //Get it from lower level cache (if any) or main memory, and write it in the curr cache level.
 		return data;
 	}
 	else
+	{
+		contents[index].last_access_time = ++curr_max_timestamp;	//Need to increment, else LRU doesn't work well.
 		return getDataAtIndex(index);
+	}
 }
 
 
 //
 //Write data into cache.
-void Cache::write(size_t addr, int data, Write_Policy wp, vector<int>& level_indices_modified_in_curr_access)
+void Cache::write(size_t addr, int data, Write_Policy wp, Replacement_Policy rp, vector<int>& level_indices_modified_in_curr_access)
 {
 	t_cache_entry cache_entry;
 	cache_entry.addr = addr;
@@ -229,11 +278,12 @@ void Cache::write(size_t addr, int data, Write_Policy wp, vector<int>& level_ind
 	int index = findIndexOfAddr(addr);
 
 	if (index < 0)  //Cache miss.
-		processCacheMiss(addr, wp, true, data, level_indices_modified_in_curr_access); //Get it from lower level cache (if any) or main memory, and write it in the curr cache level.
+		processCacheMiss(addr, wp, rp, true, data, level_indices_modified_in_curr_access); //Get it from lower level cache (if any) or main memory, and write it in the curr cache level.
 	else  //Cache hit. Write it in the curr cache level.
 	{
 		cache_entry.dirty = (wp == Write_Policy::WRITE_BACK);
 		cache_entry.timestamp = ++curr_max_timestamp;
+		cache_entry.last_access_time = cache_entry.timestamp;
 
 		insertAt(index, cache_entry);
 		level_indices_modified_in_curr_access[levelMinus1] = index;
