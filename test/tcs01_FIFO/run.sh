@@ -1,11 +1,14 @@
 #
-#$Id: run.sh,v 1.5 2026/08/31 11:02:05 venkatnarayan.h Exp venkatnarayan.h $
+#$Id: run.sh,v 1.6 2026/09/01 11:12:45 venkatnarayan.h Exp venkatnarayan.h $
 #
 tmp_gold_file=/tmp/vh_$$.txt
 
+pwd && \
 egrep -v '^\s*$' golden_output.txt > $tmp_gold_file && \
 ../../cache_sim.x access_pattern.dat config_file.dat && \
 ../../cache_sim.x access_pattern.dat config_file.dat | \
   egrep 'V:.*D:' > output.txt && \
-tkdiff $tmp_gold_file output.txt &
+diff $tmp_gold_file output.txt && \
+echo "-I-: SUCCESS" || \
+{ echo "-F-: FAILURE when running: \"diff $tmp_gold_file output.txt\""; exit 1; }
 
