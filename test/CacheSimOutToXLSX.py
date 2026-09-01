@@ -13,11 +13,12 @@ def parse_and_export_cache_log(file_path, output_excel):
     # Define Styles
     font_bold_red = Font(name="Calibri", size=11, bold=True, color="FF0000") # D:T
     font_bold = Font(name="Calibri", size=11, bold=True, color="000000")     # MCA:T only
+    font_red = Font(name="Calibri", size=11, color="FF0000")              # Default
     font_normal = Font(name="Calibri", size=11, color="555555")              # Default
     fill_invalid = PatternFill(start_color="F0F0F0", end_color="F0F0F0", fill_type="solid") # V:F
 
     # Regex to match individual cache entry tokens
-    entry_pattern = re.compile(r'(-?\d+,-?\d+)\s*\(V:([TF]),\s*D:([TF]),\s*MCA:([TF]),\s*TS:(\d+),\s*LAT:(\d+)\)')
+    entry_pattern = re.compile(r'(-?\d+,-?\d+)\s*\(V:([TF]),\s*D:([TF]),\s*MCA:([TF]),\s*TS:(-?\d+),\s*LAT:(-?\d+)\)')
 
     with open(file_path, 'r') as f:
         lines = f.readlines()
@@ -39,14 +40,22 @@ def parse_and_export_cache_log(file_path, output_excel):
         
         for col_idx, (addr_data, valid, dirty, mca, ts, lat) in enumerate(entries, start=2):
             cell = ws.cell(row=row_idx, column=col_idx)
-            cell.value = f"{addr_data}\n(V:{valid},D:{dirty},MCA:{mca})"
+            
+            # Formats address pair and all attributes including TS and LAT
+            cell.value = f"{addr_data}\n(V:{valid}, D:{dirty}, MCA:{mca}, TS:{ts}, LAT:{lat})"
             cell.alignment = Alignment(wrap_text=True, horizontal="center")
             
             # Formatting Rules
             if dirty == 'T':
-                cell.font = font_bold_red
-            elif mca == 'T':
-                cell.font = font_bold
+                if mca == 'T':
+                    cell.font = font_bold_red
+                else:
+                    cell.font = font_red
+            elif dirty == 'F':
+                if mca == 'T':
+                    cell.font = font_bold
+                else:
+                    cell.font = font_normal
             else:
                 cell.font = font_normal
                 
