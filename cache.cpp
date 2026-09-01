@@ -33,6 +33,7 @@ Cache::Cache(size_t s)
 	cache_entry.valid = false;
 	cache_entry.dirty = false;
 	cache_entry.timestamp = 0;
+	cache_entry.last_access_time = 0;
 
 	contents.resize(s, cache_entry);
 }
