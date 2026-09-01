@@ -361,3 +361,10 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/test/tcs02_LRU/RCS
+/test/tcs03_LRU_TextProblem_WB/RCS
+/test/tcs03_LRU_TextProblem_WB/output.txt
+/test/tcs02_LRU/output.txt
+/test/FIFO_golden_output.xlsx
+/test/LRU_golden_output.xlsx
+/test/LRU_TextProblem_WB_output.xlsx
