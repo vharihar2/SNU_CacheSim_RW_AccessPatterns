@@ -13,6 +13,12 @@ This is a simple Cache Simulator developed by Dr Venkatnarayan Hariharan of the 
 
 <br>
 
+**Prerequisites for building:**
+- Ensure that the C++ Boost library is installed and its location is made known to your build system (MSVS 2026 Community Edition in my case, though you can use whatever you want).
+- Ensure that the IniReader library (a simple key-value parser that I built) is built and staged in a suitable directory (inferable from the project settings). The IniReader library is available at [IniReader GitHub Repository](https://github.com/vharihar2/IniReader).
+
+<br>
+
 ***Future TODOs (@@TODO)***:
 - P1 (top priority):
     - **IMP**: Test out write-through cases too (there is an exercise problem regarding that too).
