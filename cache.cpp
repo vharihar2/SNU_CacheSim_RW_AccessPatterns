@@ -300,5 +300,13 @@ void Cache::write(size_t addr, int data, Write_Policy wp, Replacement_Policy rp,
 		insertAt(index, cache_entry);
 		level_indices_modified_in_curr_access[levelMinus1] = index;
 	}
+
+	//If write-through, waterfall the write to lower level caches/MM.
+	if (wp == Write_Policy::WRITE_THRU) {
+		if (lower)
+			lower->write(addr, data, wp, rp, level_indices_modified_in_curr_access); //Waterfall to lower level cache.
+		else
+			mm->contents[addr] = data; //Waterfall to main memory.
+	}
 }
 

@@ -7,5 +7,5 @@ egrep -v '^\s*$' golden_output1.txt > $tmp_gold_file && \
 ../../cache_sim.x access_pattern.dat config_file1.dat > output1.txt
 diff $tmp_gold_file output1.txt && \
 echo "-I-: SUCCESS" || \
-{ echo "-F-: FAILURE"; exit 1; }
+{ echo "-F-: FAILURE $(realpath $0)"; exit 1; }
 

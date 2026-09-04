@@ -10,5 +10,5 @@ egrep -v '^\s*$' golden_output.txt > $tmp_gold_file && \
   egrep 'V:.*D:' > output.txt && \
 diff $tmp_gold_file output.txt && \
 echo "-I-: SUCCESS" || \
-{ echo "-F-: FAILURE when running: \"diff $tmp_gold_file output.txt\""; exit 1; }
+{ echo "-F-: FAILURE $(realpath $0) when running: diff $tmp_gold_file output.txt"; exit 1; }
 
