@@ -368,3 +368,6 @@ FodyWeavers.xsd
 /test/FIFO_golden_output.xlsx
 /test/LRU_golden_output.xlsx
 /test/LRU_TextProblem_WB_output.xlsx
+/test/tcs00_ParmValidation/RCS
+/test/tcs01_FIFO/RCS
+/test/tcs04_LRU_TextProblem_WT/RCS
