@@ -21,13 +21,13 @@ This is a simple Cache Simulator developed by Dr Venkatnarayan Hariharan of the 
 
 ***Future TODOs (@@TODO)***:
 - P1 (top priority):
-    - **IMP**: Test out write-through cases too (there is an exercise problem regarding that too).
     - **IMP**: Fix the caveat related to "multiple words in a cache being modified in an access".
     - The `map` member variable in `MainMemory` class is presently `public`, as a quickfix. Need to make it `private` to be cleaner.
     - Uninitialized memory (ie. junk) loaded from MM is presently deemed as -99999. A better implementation is to have a `bool junk_data` flag.
 - P2:
     - None.
 - P3:
+    - Fix the visualization script `test\CacheSimOutToXLSX.py` to handle any number of cache levels, instead of just 2.
     - Make the cache instantiation dynamic in `cache_sim.cpp` in line with the intent of the config file, instead of hardcoding it to 2 levels.
 - P4:
     - Add performance modeling capability.
