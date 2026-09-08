@@ -4,11 +4,11 @@ This is a simple Cache Simulator developed by Dr Venkatnarayan Hariharan of the 
 *As of Aug 31st 2026, it has the following features*:
 - Takes a data file as an input, that contains any number of user-specified access patterns.
 - Takes a configuration file as an input, that specifies #levels in the cache hierarchy, and whether it follows a write-through or write-back policy. Any number of cache levels are supported, though presently in `cache_sim.cpp` containing `main()`, it is hardcoded to 2 levels of cache. It is written so that it is easily expandable to any number of caches.
-- The simulator emits to the standard output, which you can easily redirect to an output text file. Then you can trim that text file to remove all informational messages and retain just the data.
-- A poor-man's "GUI visualizer"" is available by running a Python script on this trimmed output file. The script generates an Excel file which is much more readable. To use the Python formatter on the trimmed output, run it as follows (needs Python 3, it has been tested on Python v3.14.7)
-    - `python <Path to CacheSimOutToXLSX.py> <Path to the generated output.txt> -o <Path to the generated output.xlsx>`
 - Only LRU and FIFO cache replacement policies are supported for now.
 - The cache line length is just 1 word (bcoz, as I said, this task was solely motivated by the exercise problem).
+- The simulator emits to the standard output, which you can easily redirect to an output text file. Then you can trim that text file to remove all informational messages and retain just the data.
+- A poor-man's "GUI visualizer" is available by running a Python script on this trimmed output file. The script generates an Excel file which is much more readable. To use the Python formatter on the trimmed output, run it as follows (needs Python 3, it has been tested on Python v3.14.7)
+  > `python <Path to CacheSimOutToXLSX.py> <Path to the generated output.txt> -o <Path to the generated output.xlsx>`
 
 
 *Caveats*:
