@@ -78,9 +78,9 @@ public:
 	void insertAt(int free_slot, const t_cache_entry& cache_entry);
 	size_t findIndexOfFifoEntry();
 	size_t findIndexOfLruEntry();
-	int read(size_t addr, Write_Policy wp, Replacement_Policy rp, vector<int>& level_indices_modified_in_curr_access);
-	void write(size_t addr, int data, Write_Policy wp, Replacement_Policy rp, vector<int>& level_indices_modified_in_curr_access);
-	void printContents(int index_modified_in_curr_access, bool printNewline = true);
+	int read(size_t addr, Write_Policy wp, Replacement_Policy rp, vector<vector<int>>& level_indices_modified_in_curr_access);
+	void write(size_t addr, int data, Write_Policy wp, Replacement_Policy rp, vector<vector<int>>& level_indices_modified_in_curr_access);
+	void printContents(vector<int> indices_modified_in_curr_access, bool printNewline = true);
 
 private:
 	vector<t_cache_entry> contents;	//Contents of the cache after the current access pattern.
@@ -93,7 +93,7 @@ private:
 
 	int getDataAtIndex(size_t index);
 	void processCacheMiss(size_t addr, Write_Policy wp, Replacement_Policy rp, bool write, int& data,
-		vector<int>& level_indices_modified_in_curr_access);
+		vector<vector<int>>& level_indices_modified_in_curr_access);
 	size_t findIndexOfReplCandidate(Replacement_Policy rp);
 };
 

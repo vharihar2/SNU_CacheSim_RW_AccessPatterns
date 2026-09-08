@@ -73,15 +73,22 @@ void Cache::insertAt(int free_slot, const t_cache_entry& cache_entry)
 }
 
 
-void Cache::printContents(int index_modified_in_curr_access, bool printNewline)
+void Cache::printContents(vector<int> indices_modified_in_curr_access, bool printNewline)
 {
 	size_t n = contents.size();
 	for (size_t i = 0; i < n; i++) {
+
+		//Lambda function to check if an index was modified in the current access.
+		auto index_modified_in_curr_access = [&indices_modified_in_curr_access](int val) {
+			return std::find(indices_modified_in_curr_access.begin(), indices_modified_in_curr_access.end(), val) !=
+																							indices_modified_in_curr_access.end();
+		};
+
 		t_cache_entry& cache_entry = contents[i];
 		printf("%zu,%d (V:%c, D:%c, MCA:%c, TS:%zu, LAT:%zu)\t",
 			cache_entry.addr, cache_entry.data,
 			cache_entry.valid ? 'T' : 'F', cache_entry.dirty ? 'T' : 'F',
-			i == index_modified_in_curr_access ? 'T' : 'F',
+			index_modified_in_curr_access(i) ? 'T' : 'F',
 			cache_entry.timestamp, cache_entry.last_access_time);
 	}
 
@@ -198,10 +205,11 @@ size_t Cache::findIndexOfReplCandidate(Replacement_Policy rp)
 
 
 //
-//Handle cache misses. Here-in lies the complexity of the cache simulator (to handle eviction, etc). We need to ensure that we follow the
-//"inclusive cache" design, handle the write policies correctly, and do slightly different things based on read vs write.
+//Handle cache misses by doing the needful to fetch addr/data into the current level cache. Here-in lies the complexity of the cache simulator
+//(to handle eviction, etc). We need to ensure that we follow the "inclusive cache" design, handle the write policies correctly, and do
+//slightly different things based on read vs write.
 void Cache::processCacheMiss(size_t addr, Write_Policy wp, Replacement_Policy rp, bool write, int& data,
-	vector<int>& level_indices_modified_in_curr_access)
+	vector<vector<int>>& level_indices_modified_in_curr_access)
 {
 	//First ensure that it exists in lower level cache (since we are assuming an "inclusive cache").
 	int data_from_lower_level;
@@ -254,13 +262,14 @@ void Cache::processCacheMiss(size_t addr, Write_Policy wp, Replacement_Policy rp
 	cache_entry.last_access_time = cache_entry.timestamp;
 
 	insertAt(index_to_insert_at, cache_entry);
-	level_indices_modified_in_curr_access[levelMinus1] = index_to_insert_at;
+	level_indices_modified_in_curr_access[levelMinus1].push_back(index_to_insert_at);
 }
 
 
 //
 //Read data from cache.
-int Cache::read(size_t addr, Write_Policy wp, Replacement_Policy rp, vector<int>& level_indices_modified_in_curr_access)
+int Cache::read(size_t addr, Write_Policy wp, Replacement_Policy rp, vector<vector<int>>& level_indices_modified_in_curr_access)
+
 {
 	int index = findIndexOfAddr(addr);
 
@@ -280,7 +289,7 @@ int Cache::read(size_t addr, Write_Policy wp, Replacement_Policy rp, vector<int>
 
 //
 //Write data into cache.
-void Cache::write(size_t addr, int data, Write_Policy wp, Replacement_Policy rp, vector<int>& level_indices_modified_in_curr_access)
+void Cache::write(size_t addr, int data, Write_Policy wp, Replacement_Policy rp, vector<vector<int>>& level_indices_modified_in_curr_access)
 {
 	t_cache_entry cache_entry;
 	cache_entry.addr = addr;
@@ -298,7 +307,7 @@ void Cache::write(size_t addr, int data, Write_Policy wp, Replacement_Policy rp,
 		cache_entry.last_access_time = cache_entry.timestamp;
 
 		insertAt(index, cache_entry);
-		level_indices_modified_in_curr_access[levelMinus1] = index;
+		level_indices_modified_in_curr_access[levelMinus1].push_back(index);
 	}
 
 	//If write-through, waterfall the write to lower level caches/MM.
