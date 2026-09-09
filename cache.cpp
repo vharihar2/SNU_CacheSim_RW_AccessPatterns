@@ -73,7 +73,7 @@ void Cache::insertAt(int free_slot, const t_cache_entry& cache_entry)
 }
 
 
-void Cache::printContents(vector<int> indices_modified_in_curr_access, bool printNewline)
+void Cache::printContents(vector<int> indices_modified_in_curr_access, ofstream& file, bool printNewline)
 {
 	size_t n = contents.size();
 	for (size_t i = 0; i < n; i++) {
@@ -85,15 +85,17 @@ void Cache::printContents(vector<int> indices_modified_in_curr_access, bool prin
 		};
 
 		t_cache_entry& cache_entry = contents[i];
-		printf("%zu,%d (V:%c, D:%c, MCA:%c, TS:%zu, LAT:%zu)\t",
-			cache_entry.addr, cache_entry.data,
-			cache_entry.valid ? 'T' : 'F', cache_entry.dirty ? 'T' : 'F',
-			index_modified_in_curr_access(i) ? 'T' : 'F',
-			cache_entry.timestamp, cache_entry.last_access_time);
+
+		file << cache_entry.addr << ',' << cache_entry.data
+			<< " (V:" << (cache_entry.valid ? 'T' : 'F')
+			<< ", D:" << (cache_entry.dirty ? 'T' : 'F')
+			<< ", MCA:" << (index_modified_in_curr_access(i) ? 'T' : 'F')
+			<< ", TS:" << cache_entry.timestamp
+			<< ", LAT:" << cache_entry.last_access_time << ")\t";
 	}
 
 	if (printNewline)
-		printf("\n\n");
+		file << "\n";
 }
 
 

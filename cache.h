@@ -80,7 +80,7 @@ public:
 	size_t findIndexOfLruEntry();
 	int read(size_t addr, Write_Policy wp, Replacement_Policy rp, vector<vector<int>>& level_indices_modified_in_curr_access);
 	void write(size_t addr, int data, Write_Policy wp, Replacement_Policy rp, vector<vector<int>>& level_indices_modified_in_curr_access);
-	void printContents(vector<int> indices_modified_in_curr_access, bool printNewline = true);
+	void printContents(vector<int> indices_modified_in_curr_access, ofstream& file, bool printNewline = true);
 
 private:
 	vector<t_cache_entry> contents;	//Contents of the cache after the current access pattern.

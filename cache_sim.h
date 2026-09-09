@@ -60,8 +60,8 @@ namespace snucs {
 	void LoadParms(string config_filenm, parameters* parms);
 	void PrintConfigFileDataStruct(parameters* parms);
 	void PrintAccessPatternFileDataStruct(vector<MemAccess>& m_accesses);
-	void LoadAccessPatterns(string access_pat_filenm,
-		vector<MemAccess>& m_accesses);
+	void LoadAccessPatterns(string access_pat_filenm, vector<MemAccess>& m_accesses);
+	void SimulateCache(vector<MemAccess>& m_accesses, parameters* parms, string& output_file);
 }  //End namespace snucs
 
 #endif

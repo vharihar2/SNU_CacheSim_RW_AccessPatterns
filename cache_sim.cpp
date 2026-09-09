@@ -28,7 +28,7 @@ namespace snucs {
 	{
 		cout <<
 			"Usage: \n" <<
-			"  " << progname << " <Access pattern dat file> <Config file>\n";
+			"  " << progname << " -ap <Access patterns file> -c <Config file> -o <Output file>\n";
 	}
 
 
@@ -173,6 +173,17 @@ namespace snucs {
 	}
 
 
+	void PrintAccessPatternFileDataStruct(vector<MemAccess>& m_accesses)
+	{
+		for (const auto& access : m_accesses) {
+			printf("%c %zu", access.read ? 'R' : 'W', access.addr);
+			if (!access.read)
+				printf(" %d", access.write_data);
+			printf("\n");
+		}
+	}
+
+
 	void LoadAccessPatterns(string access_pat_filenm, vector<MemAccess>& m_accesses)
 	{
 		std::ifstream file(access_pat_filenm);
@@ -226,18 +237,7 @@ namespace snucs {
 	}
 
 
-	void PrintAccessPatternFileDataStruct(vector<MemAccess>& m_accesses)
-	{
-		for (const auto& access : m_accesses) {
-			printf("%c %zu", access.read ? 'R' : 'W', access.addr);
-			if (!access.read)
-				printf(" %d", access.write_data);
-			printf("\n");
-		}
-	}
-
-
-	void SimulateCache(vector<MemAccess>& m_accesses, parameters* parms)
+	void SimulateCache(vector<MemAccess>& m_accesses, parameters* parms, string &output_file)
 	{
 		Cache l1(2);
 		Cache l2(4);
@@ -247,6 +247,10 @@ namespace snucs {
 		l2.setUpperLevelCache(&l1, &mm);
 
 		l1.setAsHighestLevelCache();
+
+		std::ofstream file(output_file);
+		if (!file.is_open())
+			throw("-E-: Could not open output file for writing!");
 
 		size_t access_num = 0;
 		for (const auto& access : m_accesses)
@@ -266,10 +270,10 @@ namespace snucs {
 				l1.write(access.addr, access.write_data, parms->WritePolicy, parms->ReplacementPolicy, level_indices_modified_in_curr_access);
 			}
 
-			printf("%d.\t", ++access_num);
-			l1.printContents(level_indices_modified_in_curr_access[0], false);
-			printf("\t");
-			l2.printContents(level_indices_modified_in_curr_access[1]);
+			file << ++access_num << ".\t";
+			l1.printContents(level_indices_modified_in_curr_access[0], file, false);
+			file << "\t";
+			l2.printContents(level_indices_modified_in_curr_access[1], file);
 		}
 	}
 
@@ -281,18 +285,28 @@ int main(int argc, char** argv)
 	string progname(argv[0]);
 	string access_pat_filenm;
 	string config_filenm;
+	string output_file;
 	parameters parms_struct = {};
 	parameters* parms = &parms_struct;
 
-	if (argc == 3) {
-		access_pat_filenm = argv[1];
-		config_filenm = argv[2];
-		snucs::LoadParms(config_filenm, parms);
+	if (argc == 7) {
+		for (int i = 1; i < argc; ++i) {
+			std::string arg = argv[i];
+
+			if (arg == "-c" && i + 1 < argc)
+				config_filenm = argv[++i];
+			else if (arg == "-ap" && i + 1 < argc)
+				access_pat_filenm = argv[++i];
+			else if (arg == "-o" && i + 1 < argc)
+				output_file = argv[++i];
+		}
 	}
 	else {
 		snucs::usage(progname);
 		return 1;
 	}
+
+	snucs::LoadParms(config_filenm, parms);
 
 	cout << "access_pat_filenm: " << access_pat_filenm << "\n";
 	cout << "config_filenm: " << config_filenm << "\n";
@@ -300,7 +314,7 @@ int main(int argc, char** argv)
 	vector<MemAccess> m_accesses;
 	snucs::LoadAccessPatterns(access_pat_filenm, m_accesses);
 
-	snucs::SimulateCache(m_accesses, parms);
+	snucs::SimulateCache(m_accesses, parms, output_file);
 
 	return 0;
 }
