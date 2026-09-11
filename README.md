@@ -5,8 +5,9 @@ This is a simple Cache Simulator developed by Dr Venkatnarayan Hariharan of the 
 - To invoke, run it as follows:
     - `x64\Debug\CacheSim_RW_AccessPatterns.exe -ap access_pattern.dat -c config_file.dat -o output.txt`
 - Takes a data file as an input that contains any number of user-specified access patterns.
-- Takes a configuration file as an input that specifies #levels in the cache hierarchy, and whether it follows a write-through or write-back policy. Any number of cache levels are supported, though presently in `cache_sim.cpp` containing `main()`, it is hardcoded to 2 levels of cache. It is written so that it is easily expandable to any number of caches.
+- Takes a configuration file as an input that specifies #levels and their sizes in the cache hierarchy, whether it follows a write-through or write-back policy, and the cache replacement policy. Up to 4 "inclusive" cache levels are supported, each of any size.
 - Writes out the cache state after each access to an output file.
+- Only Fully Associative caches are supported for now.
 - Only LRU and FIFO cache replacement policies are supported for now.
 - The cache line length is just 1 word (bcoz, as I said, this task was solely motivated by the exercise problem).
 - A poor-man's "GUI visualizer" is available by running a Python script on the generated output file. The script generates an Excel file which is much more readable. To use the Python formatter on the generated output, run it as follows (needs Python 3, it has been tested on Python v3.14.7)
