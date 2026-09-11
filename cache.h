@@ -69,9 +69,9 @@ typedef struct cache_entry {
 
 class Cache {
 public:
-	Cache(size_t s);
-	void setLowerLevelCache(Cache* c, MainMemory* mm);
-	void setUpperLevelCache(Cache* c, MainMemory* mm);
+	Cache(size_t s, MainMemory* mm);
+	void setLowerLevelCache(Cache* c);
+	void setUpperLevelCache(Cache* c);
 	void setAsHighestLevelCache();
 	int findIndexOfAddr(size_t addr);
 	int findFreeSlotIndex();

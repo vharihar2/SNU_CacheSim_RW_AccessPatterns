@@ -245,16 +245,16 @@ namespace snucs {
 		for (size_t n = 0; n < parms->NumCacheLevelsExclMM; n++) {
 			switch (n) {
 			case 0:
-				caches.push_back(Cache(parms->CapacityOfL1Cache));
+				caches.push_back(Cache(parms->CapacityOfL1Cache, &mm));
 				break;
 			case 1:
-				caches.push_back(Cache(parms->CapacityOfL2Cache));
+				caches.push_back(Cache(parms->CapacityOfL2Cache, &mm));
 				break;
 			case 2:
-				caches.push_back(Cache(parms->CapacityOfL3Cache));
+				caches.push_back(Cache(parms->CapacityOfL3Cache, &mm));
 				break;
 			case 3:
-				caches.push_back(Cache(parms->CapacityOfL4Cache));
+				caches.push_back(Cache(parms->CapacityOfL4Cache, &mm));
 				break;
 			default:
 				throw("-E-: Invalid cache level");
@@ -262,8 +262,8 @@ namespace snucs {
 		}
 
 		for (size_t n = 0; n < parms->NumCacheLevelsExclMM - 1; n++) {
-			caches[n].setLowerLevelCache(&caches[n + 1], &mm);
-			caches[n + 1].setUpperLevelCache(&caches[n], &mm);
+			caches[n].setLowerLevelCache(&caches[n + 1]);
+			caches[n + 1].setUpperLevelCache(&caches[n]);
 		}
 
 		caches[0].setAsHighestLevelCache();

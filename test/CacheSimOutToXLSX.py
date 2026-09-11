@@ -4,17 +4,46 @@ import re
 import argparse
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
-from openpyxl.utils import get_column_letter  # Added for column width setting
+from openpyxl.utils import get_column_letter    #Added for column width setting
 
-def parse_and_export_cache_log(file_path, output_excel):
+def parse_config(config_path):
+    """
+    Parses the configuration file to extract the number of cache levels
+    and their respective capacities.
+    """
+    config = {}
+    with open(config_path, 'r') as f:
+        for line in f:
+            # Remove inline comments and whitespace
+            line = line.split('#')[0].strip()
+            if not line or '=' not in line:
+                continue
+            key, val = line.split('=', 1)
+            config[key.strip()] = val.strip()
+
+    num_levels = int(config.get('NumCacheLevelsExclMM', 0))
+    capacities = []
+    
+    for lvl in range(1, num_levels + 1):
+        cap_key = f'CapacityOfL{lvl}Cache'
+        if cap_key in config:
+            capacities.append((lvl, int(config[cap_key])))
+        else:
+            raise ValueError(f"Missing required key '{cap_key}' in configuration file: {config_path}")
+
+    return capacities
+
+def parse_and_export_cache_log(file_path, config_path, output_excel):
+    capacities = parse_config(config_path)
+
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Cache State"
 
     # Define Styles
-    font_bold_red = Font(name="Calibri", size=11, bold=True, color="FF0000") # D:T
+    font_bold_red = Font(name="Calibri", size=11, bold=True, color="FF0000") # D:T, MCA:T
     font_bold = Font(name="Calibri", size=11, bold=True, color="000000")     # MCA:T only
-    font_red = Font(name="Calibri", size=11, color="FF0000")              # Default
+    font_red = Font(name="Calibri", size=11, color="FF0000")              # D:T only
     font_normal = Font(name="Calibri", size=11, color="555555")              # Default
     fill_invalid = PatternFill(start_color="F0F0F0", end_color="F0F0F0", fill_type="solid") # V:F
     
@@ -25,13 +54,19 @@ def parse_and_export_cache_log(file_path, output_excel):
     # Regex to match individual cache entry tokens
     entry_pattern = re.compile(r'(-?\d+,-?\d+)\s*\(V:([TF]),\s*D:([TF]),\s*MCA:([TF]),\s*TS:(-?\d+),\s*LAT:(-?\d+)\)')
 
+    # Dynamically build header list based on parsed capacities
+    headers = ["Serial #"]
+    for lvl, cap in capacities:
+        for entry_idx in range(1, cap + 1):
+            headers.append(f"L{lvl} Entry {entry_idx}")
+
     with open(file_path, 'r') as f:
         lines = f.readlines()
 
-    ws.append(["Serial #", "L1 Entry 1", "L1 Entry 2", "L2 Entry 1", "L2 Entry 2", "L2 Entry 3", "L2 Entry 4"])
+    ws.append(headers)
 
     # Format Header Row Cells
-    for col in range(1, len(["Serial #", "L1 Entry 1", "L1 Entry 2", "L2 Entry 1", "L2 Entry 2", "L2 Entry 3", "L2 Entry 4"]) + 1):
+    for col in range(1, len(headers) + 1):
         cell = ws.cell(row=1, column=col)
         cell.font = font_header
         cell.fill = fill_header
@@ -74,24 +109,58 @@ def parse_and_export_cache_log(file_path, output_excel):
             if valid == 'F':
                 cell.fill = fill_invalid
 
-    # Set Column Widths (7 units for Serial #, 27 units for all others)
+    # --- ADD LEGEND SECTION ---
+    data_end_row = ws.max_row
+    legend_start_row = data_end_row + 2  # Leave 1 blank row
+
+    # Legend Title
+    legend_title_cell = ws.cell(row=legend_start_row, column=1, value="Legend / Formatting Key (for each cell which contains ADDR,DATA followed by several flags in parenthesis. A DATA value of -99999 means uninitialized value)")
+    legend_title_cell.font = Font(name="Calibri", size=11, bold=True, underline="single")
+
+    # Legend Definitions: (Sample Label, Font Style, Fill Style, Description)
+    legend_items = [
+        ("Sample", font_bold_red, None,         "Dirty entry pending waterfalling, Modified in Current Access (D:T, MCA:T)"),
+        ("Sample", font_red,      None,         "Dirty entry pending waterfalling (D:T, MCA:F)"),
+        ("Sample", font_bold,     None,         "Clean/waterfallen entry, Modified in Current Access (D:F, MCA:T)"),
+        ("Sample", font_normal,   None,         "Clean/waterfallen entry (D:F, MCA:F)"),
+        ("Sample", font_normal,   fill_invalid, "Unused entry available for use (V:F)")
+    ]
+
+    for offset, (sample_text, font_style, fill_style, desc) in enumerate(legend_items, start=1):
+        curr_row = legend_start_row + offset
+        
+        # Column A: Styled Sample
+        sample_cell = ws.cell(row=curr_row, column=1, value=sample_text)
+        sample_cell.font = font_style
+        sample_cell.alignment = Alignment(horizontal="center", vertical="center")
+        if fill_style:
+            sample_cell.fill = fill_style
+
+        # Column B: Description
+        desc_cell = ws.cell(row=curr_row, column=2, value=desc)
+        desc_cell.font = Font(name="Calibri", size=11, italic=True)
+        desc_cell.alignment = Alignment(horizontal="left", vertical="center")
+
+
+    # Set Column Widths (7.78 units for Serial #, 27.78 units for all cache entries)
     #Note: Excel applies an internal cell padding offset (~0.78 character units for standard 11 pt Calibri).
-    #When openpyxl sets a width of 7, Excel subtracts this padding. To compensate for that, add 0.78,
+    #When openpyxl sets a width of 7, Excel subtracts this padding. To compensate for that, we add 0.78.
     ws.column_dimensions['A'].width = 7.78
     for col in range(2, ws.max_column + 1):
         col_letter = get_column_letter(col)
         ws.column_dimensions[col_letter].width = 27.78
 
-    # Set Row Heights (28.8 pt for all rows including header)
-    for row in range(1, ws.max_row + 1):
+    # Set Row Heights: 28.8 pt height for data log table rows only
+    for row in range(1, data_end_row + 1):
         ws.row_dimensions[row].height = 28.8
 
     wb.save(output_excel)
     print(f"Successfully generated: {output_excel}")
 
 def main():
-    parser = argparse.ArgumentParser(description="Visualize Cache Log file into a styled Excel sheet.")
+    parser = argparse.ArgumentParser(description="Visualize Cache Log file into a styled Excel sheet based on config settings.")
     parser.add_argument("input_file", help="Path to the input text log file")
+    parser.add_argument("-c", "--config", help="Path to the config file (default: config_file.dat)", default="config_file.dat")
     parser.add_argument("-o", "--output", help="Optional output XLSX file path", default=None)
 
     args = parser.parse_args()
@@ -100,12 +169,16 @@ def main():
         print(f"Error: Input file '{args.input_file}' does not exist.")
         sys.exit(1)
 
+    if not os.path.exists(args.config):
+        print(f"Error: Config file '{args.config}' does not exist.")
+        sys.exit(1)
+
     output_file = args.output
     if not output_file:
         base_name = os.path.splitext(args.input_file)[0]
         output_file = f"{base_name}_visualized.xlsx"
 
-    parse_and_export_cache_log(args.input_file, output_file)
+    parse_and_export_cache_log(args.input_file, args.config, output_file)
 
 if __name__ == "__main__":
     main()

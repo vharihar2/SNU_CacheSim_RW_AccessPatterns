@@ -24,7 +24,7 @@ using namespace snucs;
 
 Cache* Cache::highest_level_cache = nullptr;
 
-Cache::Cache(size_t s)
+Cache::Cache(size_t s, MainMemory* mm)
 {
 	t_cache_entry cache_entry;
 
@@ -36,6 +36,8 @@ Cache::Cache(size_t s)
 	cache_entry.last_access_time = 0;
 
 	contents.resize(s, cache_entry);
+	upper = lower = nullptr;
+	this->mm = mm;
 }
 
 
@@ -151,17 +153,15 @@ size_t Cache::findIndexOfLruEntry()
 }
 
 
-void Cache::setLowerLevelCache(Cache* c, MainMemory* mm)
+void Cache::setLowerLevelCache(Cache* c)
 {
 	lower = c;
-	this->mm = mm;
 }
 
 
-void Cache::setUpperLevelCache(Cache* c, MainMemory* mm)
+void Cache::setUpperLevelCache(Cache* c)
 {
 	upper = c;
-	this->mm = mm;
 }
 
 
