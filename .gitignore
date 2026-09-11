@@ -371,3 +371,7 @@ FodyWeavers.xsd
 /test/tcs00_ParmValidation/RCS
 /test/tcs01_FIFO/RCS
 /test/tcs04_LRU_TextProblem_WT/RCS
+/test/tcs00_ParmValidation/output1.txt
+/test/tcs00_ParmValidation/output2.txt
+/test/tcs01_FIFO/output.txt
+/test/tcs04_LRU_TextProblem_WT/output.txt
