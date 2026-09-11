@@ -83,7 +83,7 @@ namespace snucs {
 		switch (parms->NumCacheLevelsExclMM)
 		{
 		case 0:
-			printf("-E-: NumCacheLevelsExclMM has not been specified in the config file\n");
+			printf("-E-: NumCacheLevelsExclMM has not been specified in the config file, or is 0 which is invalid\n");
 			exit(1);
 
 		case 1:
@@ -239,14 +239,34 @@ namespace snucs {
 
 	void SimulateCache(vector<MemAccess>& m_accesses, parameters* parms, string &output_file)
 	{
-		Cache l1(2);
-		Cache l2(4);
 		MainMemory mm;
+		vector<Cache> caches;
 
-		l1.setLowerLevelCache(&l2, &mm);
-		l2.setUpperLevelCache(&l1, &mm);
+		for (size_t n = 0; n < parms->NumCacheLevelsExclMM; n++) {
+			switch (n) {
+			case 0:
+				caches.push_back(Cache(parms->CapacityOfL1Cache));
+				break;
+			case 1:
+				caches.push_back(Cache(parms->CapacityOfL2Cache));
+				break;
+			case 2:
+				caches.push_back(Cache(parms->CapacityOfL3Cache));
+				break;
+			case 3:
+				caches.push_back(Cache(parms->CapacityOfL4Cache));
+				break;
+			default:
+				throw("-E-: Invalid cache level");
+			}
+		}
 
-		l1.setAsHighestLevelCache();
+		for (size_t n = 0; n < parms->NumCacheLevelsExclMM - 1; n++) {
+			caches[n].setLowerLevelCache(&caches[n + 1], &mm);
+			caches[n + 1].setUpperLevelCache(&caches[n], &mm);
+		}
+
+		caches[0].setAsHighestLevelCache();
 
 		std::ofstream file(output_file);
 		if (!file.is_open())
@@ -262,18 +282,21 @@ namespace snucs {
 			if (access.read)
 			{
 				//Read
-				int data = l1.read(access.addr, parms->WritePolicy, parms->ReplacementPolicy, level_indices_modified_in_curr_access);
+				int data = caches[0].read(access.addr, parms->WritePolicy, parms->ReplacementPolicy, level_indices_modified_in_curr_access);
 			}
 			else
 			{
 				//Write
-				l1.write(access.addr, access.write_data, parms->WritePolicy, parms->ReplacementPolicy, level_indices_modified_in_curr_access);
+				caches[0].write(access.addr, access.write_data, parms->WritePolicy, parms->ReplacementPolicy, level_indices_modified_in_curr_access);
 			}
 
 			file << ++access_num << ".\t";
-			l1.printContents(level_indices_modified_in_curr_access[0], file, false);
-			file << "\t";
-			l2.printContents(level_indices_modified_in_curr_access[1], file);
+			for (size_t n = 0; n < caches.size(); n++) {
+				caches[n].printContents(level_indices_modified_in_curr_access[n], file, false);
+				if (n < caches.size() - 1)	//Print an extra tab after each cache level (except the last one).
+					file << "\t";
+			}
+			file << "\n";
 		}
 	}
 

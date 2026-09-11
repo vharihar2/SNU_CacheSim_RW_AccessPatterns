@@ -32,6 +32,5 @@ This is a simple Cache Simulator developed by Dr Venkatnarayan Hariharan of the 
     - None.
 - P3:
     - Fix the visualization script `test\CacheSimOutToXLSX.py` to handle any number of cache levels, instead of just 2.
-    - Make the cache instantiation dynamic in `cache_sim.cpp` in line with the intent of the config file, instead of hardcoding it to 2 levels.
 - P4:
     - Add performance modeling capability.
