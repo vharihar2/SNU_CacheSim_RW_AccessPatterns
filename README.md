@@ -1,10 +1,11 @@
 # CacheSim_RW_AccessPatterns
-This is a simple Cache Simulator developed by Dr Venkatnarayan Hariharan of the Dept of Electrical Engg at Shiv Nadar Institution of Eminence, Delhi NCR. It is primarily motivated by an exercise problem in Prof Smruti Ranjan Sarangi's text titled *[Basic Computer Architecture](https://www.cse.iitd.ac.in/~srsarangi/archbooksoft.html)* (whose text I follow to teach COD to UG students). My motive was to proliferate more similar problems and find automated solutions to them.
+This is a simple Cache Simulator developed by Dr Venkatnarayan Hariharan of the Dept of Electrical Engg at Shiv Nadar Institution of Eminence, Delhi NCR. It is primarily motivated by a few exercise problems in Prof Smruti Ranjan Sarangi's text titled *[Basic Computer Architecture](https://www.cse.iitd.ac.in/~srsarangi/archbooksoft.html)* (whose text I follow to teach COD to UG students). My motive was to proliferate more similar problems and find automated solutions to them.
 
 *It has the following features*:
-- Only Fully Associative caches are supported for now.
+- Only Fully Associative "inclusive" caches are supported for now.
 - The cache line length is just 1 word (because, as stated earlier, this project was solely motivated by the exercise problems in the cited text).
 - Only LRU and FIFO cache replacement policies are supported for now.
+- Reads and writes are supported. For writes, write-through as well as write-back policies are supported.
 
 *Invoking the tool*:
 - To invoke, run it as follows:
@@ -23,7 +24,7 @@ This is a simple Cache Simulator developed by Dr Venkatnarayan Hariharan of the 
 
 **Prerequisites for building:**
 - Ensure that the C++ Boost library is installed and its location is made known to your build system (MSVS 2026 Community Edition in my case, though you can use whatever you want).
-- Ensure that the IniReader library (a simple key-value parser that I built) is built and staged in a suitable directory (inferable from the project settings). The IniReader library is available at [IniReader GitHub Repository](https://github.com/vharihar2/IniReader).
+- Ensure that the IniReader library (a simple key-value parser that I wrote) is built and staged in a suitable directory (inferable from the project settings). The IniReader source is available at [IniReader GitHub Repository](https://github.com/vharihar2/IniReader).
 
 <br>
 
@@ -34,6 +35,6 @@ This is a simple Cache Simulator developed by Dr Venkatnarayan Hariharan of the 
     - None.
 - P3:
     - The `map` member variable in `MainMemory` class is presently `public`, as a quickfix. Need to make it `private` to be cleaner.
-    - Uninitialized memory (ie. junk) loaded from MM is presently deemed as -99999. A better implementation is to have a `bool junk_data` flag.
+    - Uninitialized memory (ie. junk) loaded from main memory is presently deemed as -99999. A better implementation is to have a `bool junk_data` flag.
 - P4:
     - Add performance modeling capability.
