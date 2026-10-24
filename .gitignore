@@ -379,3 +379,7 @@ FodyWeavers.xsd
 /test/tcs02_LRU/output.xlsx
 /test/tcs03_LRU_TextProblem_WB/output.xlsx
 /test/tcs04_LRU_TextProblem_WT/output.xlsx
+/test/WIP_tcs05_LRU_WB_BackInvalidation/RCS
+/test/WIP_tcs05_LRU_WB_BackInvalidation
+/test/TestCasesToValidateBySamyakAndAditya.txt
+/test/TestCasesToValidateBySamyakAndAditya.zip
