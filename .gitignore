@@ -385,3 +385,9 @@ FodyWeavers.xsd
 /test/TestCasesToValidateBySamyakAndAditya.zip
 /test/claude-code.py
 /test/old_CacheSimOutToXLSX.py
+/test/tcs05_LRU_WB_BackInvalidation/RCS/access_pattern.dat,v
+/test/tcs05_LRU_WB_BackInvalidation/RCS/config_file.dat,v
+/test/tcs05_LRU_WB_BackInvalidation/RCS/golden_output.txt,v
+/test/tcs05_LRU_WB_BackInvalidation/RCS/run.sh,v
+/test/tcs05_LRU_WB_BackInvalidation/output.txt
+/test/tcs05_LRU_WB_BackInvalidation/output.xlsx
