@@ -132,7 +132,7 @@ namespace snucs {
 		}
 
 		printf("-I-: Done reading config file, printing parameters read ...\n");
-		PrintConfigFileDataStruct(parms);  //@@Debug
+		PrintConfigFileDataStruct(parms);  //Debug
 		printf("-I-: Done printing parameters read.\n\n");
 	}
 
@@ -220,13 +220,6 @@ namespace snucs {
 					continue;
 				}
 
-				/* @@Debug
-				cout << "read_flag = " << m_access.read
-					 << ", addr = " << m_access.addr
-					 << ", write_data = " << m_access.write_data
-					 << '\n';
-				*/
-
 				m_accesses.push_back(m_access);
 			}
 		}
@@ -237,7 +230,7 @@ namespace snucs {
 		}
 
 		printf("-I-: Done reading access patterns, printing contents ...\n");
-		PrintAccessPatternFileDataStruct(m_accesses);   //@@Debug
+		PrintAccessPatternFileDataStruct(m_accesses);   //Debug
 		printf("-I-: Done printing access patterns read.\n\n");
 	}
 

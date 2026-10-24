@@ -63,7 +63,8 @@ typedef struct cache_entry {
 	int data;
 	bool valid;			//False means there is no data here.
 	bool dirty;			//Relevant for write-thru policy.
-	bool victim_of_back_invalidation;	//True means this entry (say in L1) was invalidated by a lower level cache (say L2) bcoz it was evicted from L2.
+	bool victim_of_back_invalidation;	//True means this addr (say in L1) was invalidated (and possibly subsequently filled)
+										//by a lower level cache (say L2) bcoz it was evicted from L2.
 	size_t timestamp;				//For FIFO replacement policy.
 	size_t last_access_time;	//For LRU replacement policy.
 } t_cache_entry;
@@ -97,6 +98,7 @@ private:
 		vector<vector<int>>& level_indices_modified_in_curr_access);
 	size_t findIndexOfReplCandidate(Replacement_Policy rp);
 	void backInvalidate(size_t addr, Write_Policy wp, Replacement_Policy rp, bool write, vector<vector<int>>& level_indices_modified_in_curr_access);
+	void clearVobiFlagsAllLevels();
 };
 
 }  //End namespace snucs

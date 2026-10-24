@@ -138,7 +138,7 @@ def parse_and_export_cache_log(file_path, config_path, output_excel):
         ("Sample", fonts[(False, True, False)],  None,         "Dirty entry pending waterfalling (D:T, MCA:F)"),
         ("Sample", fonts[(True, False, False)],  None,         "Clean/waterfallen entry, Modified in Current Access (D:F, MCA:T)"),
         ("Sample", fonts[(False, False, False)], None,         "Clean/waterfallen entry (D:F, MCA:F)"),
-        ("Sample", fonts[(False, False, True)],  None,         "Victim On Branch Invalidation entry (VOBI:T)"),
+        ("Sample", fonts[(False, False, True)],  None,         "Victim Of Back Invalidation (VOBI:T), possibly subsequently populated with valid data"),
         ("Sample", fonts[(False, False, False)], fill_invalid, "Unused entry available for use (V:F)")
     ]
 

@@ -212,9 +212,7 @@ size_t Cache::findIndexOfReplCandidate(Replacement_Policy rp)
 //Back-invalidate an entry in the cache (likely bcoz it is being evicted from a lower level cache). Need to be done bcoz we are assuming an "inclusive cache" design.
 void Cache::backInvalidate(size_t addr, Write_Policy wp, Replacement_Policy rp, bool write, vector<vector<int>>& level_indices_modified_in_curr_access)
 {
-cout << "-D-: Just entered backInvalidate(addr=" << addr << ").\n";	//@@Debug
 	int index = findIndexOfAddr(addr);
-cout << "-D-: In backInvalidate(), index = " << index << ".\n";	//@@Debug
 
 	if (index >= 0) {	//Present in cache.
 		//Before invalidating it, check if it needs to be waterfallen down
@@ -256,6 +254,13 @@ void Cache::processCacheMiss(size_t addr, Write_Policy wp, Replacement_Policy rp
 	//Then insert it in the current level cache (do NOT call write, else we have an infinite loop of write calling read and vice versa).
 	int index_to_insert_at = findFreeSlotIndex();
 
+	//We want to keep track of back-invalidated entries. But on most access patterns, the back-invalidation victim entries will be RE-FILLED in
+	//the same access in which they were marked as VOBI (Victim Of Back Invalidation). Thus it was getting marked as VOBI albeit only in transient,
+	//and we were unable to see that state after that particular access. So as a workaround, we keep track of whether the "entry being RE-FILLED"
+	//now in this function is a back-invalidation victim (in the present or a prior access, more likely the former), in which case we flag that
+	//RE-FILLED entry as VOBI too, with the understanding that the reader will suitably interpret it as such.
+	bool replaces_back_invalidation_victim = (index_to_insert_at >= 0) && contents[index_to_insert_at].victim_of_back_invalidation;
+
 	if (index_to_insert_at < 0) {	//No free slot, need to evict and replace.
 		//Need to first evict (after waterfalling to lower level cache if WRITE_BACK and if the entry is dirty).
 		index_to_insert_at = (int)findIndexOfReplCandidate(rp);	//Find the entry in this cache to evict.
@@ -270,7 +275,7 @@ void Cache::processCacheMiss(size_t addr, Write_Policy wp, Replacement_Policy rp
 				if (lower)	//Waterfall to lower level cache.
 					lower->write(contents[index_to_insert_at].addr, contents[index_to_insert_at].data, wp, rp, level_indices_modified_in_curr_access);
 				else
-					mm->contents[addr] = contents[index_to_insert_at].data; //Waterfall to main memory.
+					mm->contents[contents[index_to_insert_at].addr] = contents[index_to_insert_at].data; //Waterfall to main memory.
 
 				if (!write)
 					contents[index_to_insert_at].dirty = false;    //Having waterfalled, reset the dirty bit at the current level if doing a 'read'.
@@ -290,7 +295,7 @@ void Cache::processCacheMiss(size_t addr, Write_Policy wp, Replacement_Policy rp
 	}
 
 	cache_entry.valid = true;
-	cache_entry.victim_of_back_invalidation = false;
+	cache_entry.victim_of_back_invalidation = replaces_back_invalidation_victim;
 
 	cache_entry.dirty = (write && (wp == Write_Policy::WRITE_BACK));
 	cache_entry.timestamp = ++curr_max_timestamp;
@@ -301,10 +306,21 @@ void Cache::processCacheMiss(size_t addr, Write_Policy wp, Replacement_Policy rp
 }
 
 
+void Cache::clearVobiFlagsAllLevels()
+{
+	for (Cache* c = this; c; c = c->lower)
+		for (t_cache_entry& e : c->contents)
+			e.victim_of_back_invalidation = false;
+}
+
+
 //
 //Read data from cache.
 int Cache::read(size_t addr, Write_Policy wp, Replacement_Policy rp, vector<vector<int>>& level_indices_modified_in_curr_access)
 {
+	if (this == highest_level_cache)
+		clearVobiFlagsAllLevels();
+
 	int index = findIndexOfAddr(addr);
 
 	if (index < 0) {	//Cache miss.
@@ -323,18 +339,19 @@ int Cache::read(size_t addr, Write_Policy wp, Replacement_Policy rp, vector<vect
 //Write data into cache.
 void Cache::write(size_t addr, int data, Write_Policy wp, Replacement_Policy rp, vector<vector<int>>& level_indices_modified_in_curr_access)
 {
-	t_cache_entry cache_entry;
-	cache_entry.addr = addr;
-	cache_entry.data = data;
-	cache_entry.valid = true;
-	cache_entry.victim_of_back_invalidation = false;
+	if (this == highest_level_cache)
+		clearVobiFlagsAllLevels();
 
 	int index = findIndexOfAddr(addr);
 
 	if (index < 0)  //Cache miss.
 		processCacheMiss(addr, wp, rp, true, data, level_indices_modified_in_curr_access); //Get it from lower level cache (if any) or main memory, and write it in the curr cache level.
-	else  //Cache hit. Write it in the curr cache level.
-	{
+	else {	//Cache hit. Write it in the curr cache level.
+		t_cache_entry cache_entry;
+		cache_entry.addr = addr;
+		cache_entry.data = data;
+		cache_entry.valid = true;
+		cache_entry.victim_of_back_invalidation = false;
 		cache_entry.dirty = (wp == Write_Policy::WRITE_BACK);
 		cache_entry.timestamp = ++curr_max_timestamp;
 		cache_entry.last_access_time = cache_entry.timestamp;
