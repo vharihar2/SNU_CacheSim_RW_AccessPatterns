@@ -1,5 +1,5 @@
 #
-#Generated with help from Google Gemini.
+# Generated with help from Google Gemini.
 #
 import sys
 import os
@@ -43,19 +43,26 @@ def parse_and_export_cache_log(file_path, config_path, output_excel):
     ws = wb.active
     ws.title = "Cache State"
 
-    # Define Styles
-    font_bold_red = Font(name="Calibri", size=11, bold=True, color="FF0000") # D:T, MCA:T
-    font_bold = Font(name="Calibri", size=11, bold=True, color="000000")     # MCA:T only
-    font_red = Font(name="Calibri", size=11, color="FF0000")              # D:T only
-    font_normal = Font(name="Calibri", size=11, color="555555")              # Default
+    # Define Font Combinations: Key = (is_mca_bold, is_dirty_red, is_vobi_italic)
+    fonts = {
+        (True,  True,  False): Font(name="Calibri", size=11, bold=True,  italic=False, color="FF0000"), # D:T, MCA:T, VOBI:F
+        (True,  True,  True):  Font(name="Calibri", size=11, bold=True,  italic=True,  color="FF0000"), # D:T, MCA:T, VOBI:T
+        (False, True,  False): Font(name="Calibri", size=11, bold=False, italic=False, color="FF0000"), # D:T, MCA:F, VOBI:F
+        (False, True,  True):  Font(name="Calibri", size=11, bold=False, italic=True,  color="FF0000"), # D:T, MCA:F, VOBI:T
+        (True,  False, False): Font(name="Calibri", size=11, bold=True,  italic=False, color="000000"), # D:F, MCA:T, VOBI:F
+        (True,  False, True):  Font(name="Calibri", size=11, bold=True,  italic=True,  color="000000"), # D:F, MCA:T, VOBI:T
+        (False, False, False): Font(name="Calibri", size=11, bold=False, italic=False, color="555555"), # D:F, MCA:F, VOBI:F
+        (False, False, True):  Font(name="Calibri", size=11, bold=False, italic=True,  color="555555"), # D:F, MCA:F, VOBI:T
+    }
+
     fill_invalid = PatternFill(start_color="F0F0F0", end_color="F0F0F0", fill_type="solid") # V:F
     
     # Header Styles
     font_header = Font(name="Calibri", size=11, bold=True, underline="single", color="000000")
     fill_header = PatternFill(start_color="FFFFCC", end_color="FFFFCC", fill_type="solid") # Light Yellow
 
-    # Regex to match individual cache entry tokens
-    entry_pattern = re.compile(r'(-?\d+,-?\d+)\s*\(V:([TF]),\s*D:([TF]),\s*MCA:([TF]),\s*TS:(-?\d+),\s*LAT:(-?\d+)\)')
+    # Regex to match cache entry address pair and full parameter string inside parentheses
+    entry_pattern = re.compile(r'(-?\d+,-?\d+)\s*\(([^)]+)\)')
 
     # Dynamically build header list based on parsed capacities
     headers = ["Serial #"]
@@ -88,26 +95,27 @@ def parse_and_export_cache_log(file_path, config_path, output_excel):
         # Find all cache entries in order
         entries = entry_pattern.findall(line)
         
-        for col_idx, (addr_data, valid, dirty, mca, ts, lat) in enumerate(entries, start=2):
+        for col_idx, (addr_data, param_str) in enumerate(entries, start=2):
             cell = ws.cell(row=row_idx, column=col_idx)
             
-            # Formats address pair and all attributes including TS and LAT
-            cell.value = f"{addr_data}\n(V:{valid}, D:{dirty}, MCA:{mca}, TS:{ts}, LAT:{lat})"
+            # Format address pair and raw parameter string
+            cell.value = f"{addr_data}\n({param_str})"
             cell.alignment = Alignment(wrap_text=True, horizontal="center")
             
-            # Formatting Rules
-            if dirty == 'T':
-                if mca == 'T':
-                    cell.font = font_bold_red
-                else:
-                    cell.font = font_red
-            elif dirty == 'F':
-                if mca == 'T':
-                    cell.font = font_bold
-                else:
-                    cell.font = font_normal
-            else:
-                cell.font = font_normal
+            # Parse parameters dictionary (e.g. {'V': 'T', 'VOBI': 'T', 'D': 'F', ...})
+            params = dict(re.findall(r'([A-Za-z]+):([^\s,]+)', param_str))
+            
+            valid = params.get('V', 'F')
+            vobi = params.get('VOBI', 'F')
+            dirty = params.get('D', 'F')
+            mca = params.get('MCA', 'F')
+
+            # Look up appropriate font style
+            is_bold = (mca == 'T')
+            is_red = (dirty == 'T')
+            is_italic = (vobi == 'T')
+            
+            cell.font = fonts[(is_bold, is_red, is_italic)]
                 
             if valid == 'F':
                 cell.fill = fill_invalid
@@ -117,16 +125,21 @@ def parse_and_export_cache_log(file_path, config_path, output_excel):
     legend_start_row = data_end_row + 2  # Leave 1 blank row
 
     # Legend Title
-    legend_title_cell = ws.cell(row=legend_start_row, column=1, value="Legend / Formatting Key (for each cell which contains ADDR,DATA followed by several flags in parenthesis. A DATA value of -99999 means uninitialized value)")
+    legend_title_cell = ws.cell(
+        row=legend_start_row, 
+        column=1, 
+        value="Legend / Formatting Key (for each cell which contains ADDR,DATA followed by several flags in parenthesis. A DATA value of -99999 means uninitialized value)"
+    )
     legend_title_cell.font = Font(name="Calibri", size=11, bold=True, underline="single")
 
     # Legend Definitions: (Sample Label, Font Style, Fill Style, Description)
     legend_items = [
-        ("Sample", font_bold_red, None,         "Dirty entry pending waterfalling, Modified in Current Access (D:T, MCA:T)"),
-        ("Sample", font_red,      None,         "Dirty entry pending waterfalling (D:T, MCA:F)"),
-        ("Sample", font_bold,     None,         "Clean/waterfallen entry, Modified in Current Access (D:F, MCA:T)"),
-        ("Sample", font_normal,   None,         "Clean/waterfallen entry (D:F, MCA:F)"),
-        ("Sample", font_normal,   fill_invalid, "Unused entry available for use (V:F)")
+        ("Sample", fonts[(True, True, False)],   None,         "Dirty entry pending waterfalling, Modified in Current Access (D:T, MCA:T)"),
+        ("Sample", fonts[(False, True, False)],  None,         "Dirty entry pending waterfalling (D:T, MCA:F)"),
+        ("Sample", fonts[(True, False, False)],  None,         "Clean/waterfallen entry, Modified in Current Access (D:F, MCA:T)"),
+        ("Sample", fonts[(False, False, False)], None,         "Clean/waterfallen entry (D:F, MCA:F)"),
+        ("Sample", fonts[(False, False, True)],  None,         "Victim On Branch Invalidation entry (VOBI:T)"),
+        ("Sample", fonts[(False, False, False)], fill_invalid, "Unused entry available for use (V:F)")
     ]
 
     for offset, (sample_text, font_style, fill_style, desc) in enumerate(legend_items, start=1):
@@ -144,14 +157,13 @@ def parse_and_export_cache_log(file_path, config_path, output_excel):
         desc_cell.font = Font(name="Calibri", size=11, italic=True)
         desc_cell.alignment = Alignment(horizontal="left", vertical="center")
 
-
-    # Set Column Widths (7.78 units for Serial #, 27.78 units for all cache entries)
+    #Set Column Widths (7.78 units for Serial #, 34.78 units for all cache entries)
     #Note: Excel applies an internal cell padding offset (~0.78 character units for standard 11 pt Calibri).
     #When openpyxl sets a width of 7, Excel subtracts this padding. To compensate for that, we add 0.78.
     ws.column_dimensions['A'].width = 7.78
     for col in range(2, ws.max_column + 1):
         col_letter = get_column_letter(col)
-        ws.column_dimensions[col_letter].width = 27.78
+        ws.column_dimensions[col_letter].width = 34.78
 
     # Set Row Heights: 28.8 pt height for data log table rows only
     for row in range(1, data_end_row + 1):

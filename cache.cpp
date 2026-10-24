@@ -92,7 +92,7 @@ void Cache::printContents(vector<int> indices_modified_in_curr_access, ofstream&
 		file << cache_entry.addr << ',' << cache_entry.data
 			<< " (V:" << (cache_entry.valid ? 'T' : 'F')
 			<< ", D:" << (cache_entry.dirty ? 'T' : 'F')
-//@@			<< ", VOBI:" << (cache_entry.victim_of_back_invalidation ? 'T' : 'F')
+			<< ", VOBI:" << (cache_entry.victim_of_back_invalidation ? 'T' : 'F')
 			<< ", MCA:" << (index_modified_in_curr_access(i) ? 'T' : 'F')
 			<< ", TS:" << cache_entry.timestamp
 			<< ", LAT:" << cache_entry.last_access_time << ")\t";
@@ -212,7 +212,9 @@ size_t Cache::findIndexOfReplCandidate(Replacement_Policy rp)
 //Back-invalidate an entry in the cache (likely bcoz it is being evicted from a lower level cache). Need to be done bcoz we are assuming an "inclusive cache" design.
 void Cache::backInvalidate(size_t addr, Write_Policy wp, Replacement_Policy rp, bool write, vector<vector<int>>& level_indices_modified_in_curr_access)
 {
+cout << "-D-: Just entered backInvalidate(addr=" << addr << ").\n";	//@@Debug
 	int index = findIndexOfAddr(addr);
+cout << "-D-: In backInvalidate(), index = " << index << ".\n";	//@@Debug
 
 	if (index >= 0) {	//Present in cache.
 		//Before invalidating it, check if it needs to be waterfallen down
@@ -258,12 +260,10 @@ void Cache::processCacheMiss(size_t addr, Write_Policy wp, Replacement_Policy rp
 		//Need to first evict (after waterfalling to lower level cache if WRITE_BACK and if the entry is dirty).
 		index_to_insert_at = (int)findIndexOfReplCandidate(rp);	//Find the entry in this cache to evict.
 
-		/*@@
 		//First back-invalidate this addr entry (that's being evicted from curr level cache) in the upper level cache, if any.
 		//This is because we are assuming an "inclusive cache" design and need to stay consistent with that structure.
 		if (upper)
-			upper->backInvalidate(addr, wp, rp, write, level_indices_modified_in_curr_access);
-		*/
+			upper->backInvalidate(contents[index_to_insert_at].addr, wp, rp, write, level_indices_modified_in_curr_access);
 
 		if (wp == Write_Policy::WRITE_BACK) {	//In write-back, we waterfall dirty data to lower level cache ONLY UPON EVICTION.
 			if (contents[index_to_insert_at].dirty) {	//Waterfall to lower level cache (if any) and reset the dirty bit.

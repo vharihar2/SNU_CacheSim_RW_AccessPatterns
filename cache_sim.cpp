@@ -190,7 +190,7 @@ namespace snucs {
 
 		if (!file)
 		{
-			std::cerr << "Cannot open '" << access_pat_filenm << "'\n";
+			cerr << "Cannot open '" << access_pat_filenm << "'\n";
 			exit(1);
 		}
 
@@ -229,6 +229,11 @@ namespace snucs {
 
 				m_accesses.push_back(m_access);
 			}
+		}
+
+		if (m_accesses.empty()) {
+			cerr << "-E-: No valid access patterns found in '" << access_pat_filenm << "'\n";
+			exit(1);
 		}
 
 		printf("-I-: Done reading access patterns, printing contents ...\n");
