@@ -32,6 +32,7 @@ Cache::Cache(size_t s, MainMemory* mm)
 	cache_entry.data = 0;
 	cache_entry.valid = false;
 	cache_entry.dirty = false;
+	cache_entry.victim_of_back_invalidation = false;
 	cache_entry.timestamp = 0;
 	cache_entry.last_access_time = 0;
 
@@ -46,7 +47,7 @@ int Cache::findIndexOfAddr(size_t addr)
 	size_t n = contents.size();
 
 	for (size_t i = 0; i < n; ++i)
-		if (contents[i].addr == addr)
+		if (contents[i].valid && contents[i].addr == addr)
 			return i;
 
 	return -1;
@@ -91,6 +92,7 @@ void Cache::printContents(vector<int> indices_modified_in_curr_access, ofstream&
 		file << cache_entry.addr << ',' << cache_entry.data
 			<< " (V:" << (cache_entry.valid ? 'T' : 'F')
 			<< ", D:" << (cache_entry.dirty ? 'T' : 'F')
+//@@			<< ", VOBI:" << (cache_entry.victim_of_back_invalidation ? 'T' : 'F')
 			<< ", MCA:" << (index_modified_in_curr_access(i) ? 'T' : 'F')
 			<< ", TS:" << cache_entry.timestamp
 			<< ", LAT:" << cache_entry.last_access_time << ")\t";
@@ -207,11 +209,40 @@ size_t Cache::findIndexOfReplCandidate(Replacement_Policy rp)
 
 
 //
+//Back-invalidate an entry in the cache (likely bcoz it is being evicted from a lower level cache). Need to be done bcoz we are assuming an "inclusive cache" design.
+void Cache::backInvalidate(size_t addr, Write_Policy wp, Replacement_Policy rp, bool write, vector<vector<int>>& level_indices_modified_in_curr_access)
+{
+	int index = findIndexOfAddr(addr);
+
+	if (index >= 0) {	//Present in cache.
+		//Before invalidating it, check if it needs to be waterfallen down
+		if (wp == Write_Policy::WRITE_BACK) {	//In write-back, we waterfall dirty data to lower level cache ONLY UPON EVICTION.
+			if (contents[index].dirty) {	//Waterfall to lower level cache (if any) and reset the dirty bit.
+				if (lower)	//Waterfall to lower level cache.
+					lower->write(addr, contents[index].data, wp, rp, level_indices_modified_in_curr_access);
+				else
+					mm->contents[addr] = contents[index].data; //Waterfall to main memory.
+
+				if (!write)
+					contents[index].dirty = false;    //Having waterfalled, reset the dirty bit at the current level if doing a 'read'.
+			}
+		}   //Done waterfalling upon eviction if write-back.
+
+		contents[index].valid = false;    //Having waterfalled, invalidate it.
+		contents[index].victim_of_back_invalidation = true;    //Mark it as a victim of back-invalidation.
+
+		//Having invalidated the entry in the current cache, propagate the back-invalidation it to its upper level caches.
+		if (upper)
+			upper->backInvalidate(addr, wp, rp, write, level_indices_modified_in_curr_access);
+	}
+}
+
+
+//
 //Handle cache misses by doing the needful to fetch addr/data into the current level cache. Here-in lies the complexity of the cache simulator
 //(to handle eviction, etc). We need to ensure that we follow the "inclusive cache" design, handle the write policies correctly, and do
 //slightly different things based on read vs write.
-void Cache::processCacheMiss(size_t addr, Write_Policy wp, Replacement_Policy rp, bool write, int& data,
-	vector<vector<int>>& level_indices_modified_in_curr_access)
+void Cache::processCacheMiss(size_t addr, Write_Policy wp, Replacement_Policy rp, bool write, int& data, vector<vector<int>>& level_indices_modified_in_curr_access)
 {
 	//First ensure that it exists in lower level cache (since we are assuming an "inclusive cache").
 	int data_from_lower_level;
@@ -223,20 +254,21 @@ void Cache::processCacheMiss(size_t addr, Write_Policy wp, Replacement_Policy rp
 	//Then insert it in the current level cache (do NOT call write, else we have an infinite loop of write calling read and vice versa).
 	int index_to_insert_at = findFreeSlotIndex();
 
-	if (index_to_insert_at < 0)  //No free slot, need to evict and replace.
-	{
+	if (index_to_insert_at < 0) {	//No free slot, need to evict and replace.
 		//Need to first evict (after waterfalling to lower level cache if WRITE_BACK and if the entry is dirty).
 		index_to_insert_at = (int)findIndexOfReplCandidate(rp);	//Find the entry in this cache to evict.
 
-		if (wp == Write_Policy::WRITE_BACK) //In write-back, we waterfall dirty data to lower level cache ONLY UPON EVICTION.
-		{
-			//Waterfall to lower level cache if FIFO entry is dirty.
-			if (contents[index_to_insert_at].dirty)
-			{
-				//Waterfall to lower level cache (if any) and reset the dirty bit.
-				if (lower)
-					lower->write(contents[index_to_insert_at].addr, contents[index_to_insert_at].data, wp, rp,
-						level_indices_modified_in_curr_access); //Waterfall to lower level cache.
+		/*@@
+		//First back-invalidate this addr entry (that's being evicted from curr level cache) in the upper level cache, if any.
+		//This is because we are assuming an "inclusive cache" design and need to stay consistent with that structure.
+		if (upper)
+			upper->backInvalidate(addr, wp, rp, write, level_indices_modified_in_curr_access);
+		*/
+
+		if (wp == Write_Policy::WRITE_BACK) {	//In write-back, we waterfall dirty data to lower level cache ONLY UPON EVICTION.
+			if (contents[index_to_insert_at].dirty) {	//Waterfall to lower level cache (if any) and reset the dirty bit.
+				if (lower)	//Waterfall to lower level cache.
+					lower->write(contents[index_to_insert_at].addr, contents[index_to_insert_at].data, wp, rp, level_indices_modified_in_curr_access);
 				else
 					mm->contents[addr] = contents[index_to_insert_at].data; //Waterfall to main memory.
 
@@ -258,6 +290,7 @@ void Cache::processCacheMiss(size_t addr, Write_Policy wp, Replacement_Policy rp
 	}
 
 	cache_entry.valid = true;
+	cache_entry.victim_of_back_invalidation = false;
 
 	cache_entry.dirty = (write && (wp == Write_Policy::WRITE_BACK));
 	cache_entry.timestamp = ++curr_max_timestamp;
@@ -271,18 +304,15 @@ void Cache::processCacheMiss(size_t addr, Write_Policy wp, Replacement_Policy rp
 //
 //Read data from cache.
 int Cache::read(size_t addr, Write_Policy wp, Replacement_Policy rp, vector<vector<int>>& level_indices_modified_in_curr_access)
-
 {
 	int index = findIndexOfAddr(addr);
 
-	if (index < 0)  //Cache miss.
-	{
+	if (index < 0) {	//Cache miss.
 		int data;
 		processCacheMiss(addr, wp, rp, false, data, level_indices_modified_in_curr_access); //Get it from lower level cache (if any) or main memory, and write it in the curr cache level.
 		return data;
 	}
-	else
-	{
+	else {	//Cache hit
 		contents[index].last_access_time = ++curr_max_timestamp;	//Need to increment, else LRU doesn't work well.
 		return getDataAtIndex(index);
 	}
@@ -297,6 +327,7 @@ void Cache::write(size_t addr, int data, Write_Policy wp, Replacement_Policy rp,
 	cache_entry.addr = addr;
 	cache_entry.data = data;
 	cache_entry.valid = true;
+	cache_entry.victim_of_back_invalidation = false;
 
 	int index = findIndexOfAddr(addr);
 

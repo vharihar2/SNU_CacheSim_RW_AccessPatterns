@@ -33,7 +33,7 @@ This is a simple Cache Simulator developed by Dr Venkatnarayan Hariharan of the 
 
 ***Future TODOs (@@TODO)***:
 - P1 (top priority):
-    - Need to add support for back-invalidation (implemented as snoop eviction in hardware), also sometimes referred to as reverse invalidation or forced eviction in the literature.
+    - Need to add support for back-invalidation (implemented as snoop eviction in hardware), also sometimes referred to as inclusion victimization (since this is specific to inclusive caches) or reverse invalidation or forced eviction in the literature.
 - P2:
     - None.
 - P3:
