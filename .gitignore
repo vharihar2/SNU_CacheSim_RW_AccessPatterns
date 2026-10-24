@@ -383,3 +383,5 @@ FodyWeavers.xsd
 /test/WIP_tcs05_LRU_WB_BackInvalidation
 /test/TestCasesToValidateBySamyakAndAditya.txt
 /test/TestCasesToValidateBySamyakAndAditya.zip
+/test/claude-code.py
+/test/old_CacheSimOutToXLSX.py
