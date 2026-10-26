@@ -3,6 +3,7 @@ This is a simple Cache Simulator developed by Dr Venkatnarayan Hariharan of the 
 
 *It has the following features*:
 - Only Fully Associative "inclusive" caches are supported for now.
+    - Being an inclusive cache, back-invalidation is also supported.
 - The cache line length is just 1 word (because, as stated earlier, this project was solely motivated by the exercise problems in the cited text).
 - Only LRU and FIFO cache replacement policies are supported for now.
 - Reads and writes are supported. For writes, write-through as well as write-back policies are supported.
@@ -21,7 +22,8 @@ This is a simple Cache Simulator developed by Dr Venkatnarayan Hariharan of the 
     >`run_tests.sh`
 
 *Caveats*:
-- None.
+- In the formatted output XLSX, a Victim entry Of Back-Invalidation (VOBI) is shown in *italics*. This is to be interpreted as follows:
+    - On most access patterns, the VOBI entry will be filled with valid data in the same access in which it was marked as VOBI. Thus it gets marked as VOBI albeit only in a *transitionary* manner, and therefore would normally escape being seen in that state *after* that particular access. So as a workaround, the simulator marks an entry as VOBI *after* an access even if it was VOBI in a *transitionary* manner during that access and has subsequently been filled with *valid* data at the end of that access.
 
 <br>
 
