@@ -190,6 +190,12 @@ int MainMemory::read(size_t addr)
 }
 
 
+void MainMemory::write(size_t addr, int data)
+{
+	contents[addr] = data;
+}
+
+
 int Cache::getDataAtIndex(size_t index)
 {
 	return contents[index].data;
@@ -221,7 +227,7 @@ void Cache::backInvalidate(size_t addr, Write_Policy wp, Replacement_Policy rp, 
 				if (lower)	//Waterfall to lower level cache.
 					lower->write(addr, contents[index].data, wp, rp, level_indices_modified_in_curr_access);
 				else
-					mm->contents[addr] = contents[index].data; //Waterfall to main memory.
+					mm->write(addr, contents[index].data);	//Waterfall to main memory.
 
 				if (!write)
 					contents[index].dirty = false;    //Having waterfalled, reset the dirty bit at the current level if doing a 'read'.
@@ -275,7 +281,7 @@ void Cache::processCacheMiss(size_t addr, Write_Policy wp, Replacement_Policy rp
 				if (lower)	//Waterfall to lower level cache.
 					lower->write(contents[index_to_insert_at].addr, contents[index_to_insert_at].data, wp, rp, level_indices_modified_in_curr_access);
 				else
-					mm->contents[contents[index_to_insert_at].addr] = contents[index_to_insert_at].data; //Waterfall to main memory.
+					mm->write(contents[index_to_insert_at].addr, contents[index_to_insert_at].data);	//Waterfall to main memory.
 
 				if (!write)
 					contents[index_to_insert_at].dirty = false;    //Having waterfalled, reset the dirty bit at the current level if doing a 'read'.
@@ -365,7 +371,7 @@ void Cache::write(size_t addr, int data, Write_Policy wp, Replacement_Policy rp,
 		if (lower)
 			lower->write(addr, data, wp, rp, level_indices_modified_in_curr_access); //Waterfall to lower level cache.
 		else
-			mm->contents[addr] = data; //Waterfall to main memory.
+			mm->write(addr, data);	//Waterfall to main memory.
 	}
 }
 

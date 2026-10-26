@@ -40,8 +40,9 @@ namespace snucs {
 class MainMemory {
 public:
 	int read(size_t addr);
+	void write(size_t addr, int data);
 
-public:	//@@Just being lazy for now. Make it private later
+private:
 	map<size_t, int> contents;	//Map of (addr, data)
 };
 

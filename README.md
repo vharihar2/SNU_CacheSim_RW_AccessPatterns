@@ -39,7 +39,6 @@ This is a simple Cache Simulator developed by Dr Venkatnarayan Hariharan of the 
 - P2:
     - None.
 - P3:
-    - The `map` member variable in `MainMemory` class is presently `public`, as a quickfix. Need to make it `private` to be cleaner.
     - Uninitialized memory (ie. junk) loaded from main memory is presently deemed as -99999. A better implementation is to have a `bool junk_data` flag.
 - P4:
     - Add performance modeling capability.
